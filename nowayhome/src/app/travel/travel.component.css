@@ -1,0 +1,671 @@
+ul{
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+
+.travel{
+    display: flex;
+    flex-direction: column;
+}
+
+.title{
+    background-color: var(--color-background);
+    text-align: center;
+    
+}
+
+.title h1 {
+    margin: 0;
+    padding: 1em 0;
+}
+
+.subTitle{
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.subTitle_Background{
+    grid-column: 1 / span 2;
+    grid-row: 1;
+    background-color: var(--color-main);
+}
+
+.subTitle:first-of-type{
+    grid-area: titleInput;
+}
+
+.subTitle:last-of-type{
+    grid-area: titleAddedList;
+}
+
+
+.gridContainer{
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    grid-template-rows: auto repeat(2, 1fr);
+    grid-template-areas:    "titleInput titleAddedList"
+                            "input addedList"
+                            "stationList addedList";
+    column-gap: 2rem;
+}
+
+
+.inputContainer{
+    grid-area: input;
+    margin: 0 1rem;
+}
+
+.input_first{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1em;
+}
+.input_first h4{
+    margin: 0;
+    width: fit-content;
+}
+
+.input_first p{
+    margin: 0;
+    width: fit-content;
+
+}
+
+.stationList{
+    margin-top: 0.5rem;
+}
+.stationList button{
+    width: 100%;
+    line-height: 1.5em;
+}
+
+.stationList ul li:first-child button{
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.stationList ul li:last-child button{
+    border-radius: 0rem 0rem 0.5rem 0.5rem;
+}
+
+.addedStations{
+    grid-area: addedList;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    grid-auto-rows: auto auto;
+    row-gap: 1rem;
+    margin: 1rem 1rem 0 0;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.addedStations_select{
+    text-indent: 14px;
+    text-align: center;
+    background-color: var(--color-main);
+    color: white;
+    border: none;
+    line-height: 2em;
+    border-radius: 0.5rem 0.5rem 0 0;
+    padding: 0.5em 0;
+    text-transform: capitalize;
+}
+
+.addedStations_listContainer{
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    align-items: center;
+
+}
+
+.addedStations_timeBetween{
+    height: 2rem;
+    display: grid;
+    gap: 0.3rem;
+    grid-template-columns: 1fr 2fr 1fr;
+    align-items: center;
+    margin: 0 1rem;
+}
+
+.addedStations_timeBetween-first{
+    display: flex;
+}
+
+.addedStations_timeBetween .arrow{
+    
+}
+.addedStations_timeBetween .arrow:first{
+    
+
+}
+
+.addedStations_list{
+    display: flex;
+    flex-direction: column;
+    padding: 0rem 1rem 1rem;
+    background-color: var(--color-grey-transparent);
+    border-radius: 1rem;
+    min-width: 268px;
+}
+
+.addedStations_options::-webkit-scrollbar-track{
+    background-color: white;
+}
+.addedStations_options::-webkit-scrollbar{
+    display: none;
+    width: 6px;
+    height: 100%;
+}
+.addedStations_options::-webkit-scrollbar-thumb{
+    background-color: var(--color-main);
+}
+.addedStations_options::-webkit-scrollbar-button{
+    height: 0;
+
+}
+
+
+.addedStations_list li{
+    list-style: none;
+    display: block;
+    padding: 1rem 0rem;
+    background-color: var(--color-background2);
+}
+
+.addedStations_list li:first-child{
+    border-bottom: 1px solid var(--color-main);
+}
+
+.addedStations_list li:last-child{
+    border-top: 1px solid var(--color-main);
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.addedStations_list > ul > li {
+}
+
+.fromToMarker{
+    position: relative;
+
+}
+
+.fromToMarker_top::after, .fromToMarker_bottom::after{
+    position: absolute;
+    content: "";
+    width: 8px;
+    height: 2rem;
+    left: 25px;
+    background-color: var(--color-main);
+}
+
+.fromToMarker_top::after{
+    border-top-right-radius: 50%;
+    border-top-left-radius: 50%;
+    top: 3px;
+}
+
+.fromToMarker_top::before{
+    position: absolute;
+    content: "";
+    width: 20px;
+    height: 20px;
+    left: 19px;
+    border-radius: 50%;
+    background-color: var(--color-main);
+    z-index: 2;
+}
+
+.fromToMarker_bottom::after{
+    border-bottom-right-radius: 50%;
+    border-bottom-left-radius: 50%;
+    top: -1.5rem;
+}
+
+.fromToContainerReload{
+    display: grid;
+    grid-template-areas:    "fromText delete"
+                            "fromDep  switch"
+                            "toText   switch"
+                            "toDep    reload";
+    grid-template-columns: 1fr 42px;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+    flex-direction: column;
+    margin: 1rem 0;
+    background-color: var(--color-background2);
+}
+
+.fromToContainer{
+    display: flex;
+    flex-direction: column;
+    margin: 1rem 0;
+}
+
+
+.mainLineAfter {
+    border-bottom: 1px solid var(--color-main);
+}
+.mainLineBefore{
+    border-top: 1px solid var(--color-main);
+}
+.fromTo {
+    display: flex;
+    align-items: center;
+    background-color: var(--color-background2);
+    padding: 0.5rem 1rem;
+}
+
+.fromTo.from{
+    grid-area: fromText;
+}
+.fromTo.from + .realDepartures{
+    grid-area: fromDep;
+}
+.fromTo.to{
+    grid-area: toText;
+}
+.fromTo.to + .realDepartures{
+    grid-area: toDep;
+}
+.fromTo_sideButton{
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-left: 1px solid var(--color-background3);
+    font-size: 1.6rem;
+
+}
+
+.fromTo_delete{
+    grid-area: delete;
+    border-top-right-radius: 0.5rem;
+}
+
+.fromTo_reload{
+    grid-area: reload;
+    border-bottom-right-radius: 0.5rem;
+    font-size: 1.05rem;
+}
+.fromTo_switch{
+    grid-area: switch;
+    border-top: 1px solid var(--color-background3);
+    border-bottom: 1px solid var(--color-background3);
+}
+
+.fromTo span{
+    flex: 3 0 0;
+    line-height: 1rem;
+    margin-left: 0.5em;
+}
+
+.fromTo h5{
+    flex: 0 0 2.5rem;
+    line-height: 1rem;
+}
+
+
+.inputStationContainer{
+    display: flex;
+    flex-direction: row;
+    
+}
+.inputStation{
+    padding: 1em;
+    background-color: var(--color-background2);
+    border-radius: 0.5rem 0 0 0.5rem;
+    width: 100%;
+    color: var(--color-text);
+    border: 1px solid var(--color-main);
+    border-right: 0;    
+    
+}
+
+.inputStation:focus,
+.inputStation:focus-visible,
+select:focus,
+select:focus-visible{
+    outline: none;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus{
+    background-color: #000;
+    -webkit-text-fill-color: var(--color-text);
+    -webkit-box-shadow: 0 0 0px 1000px var(--color-background2) inset;
+}
+
+.inputStation_button{
+
+    border-radius: 0 0.5rem 0.5rem 0;
+    border: 1px solid var(--color-main);
+}
+
+
+
+.realDepartures{
+    display: flex;
+    justify-content: space-between;
+    padding: 0 0.5em 2px;
+    background-color: var(--color-background2);
+    align-items: center;
+}
+
+.realDepartures_text{
+    flex: 1 0 20%;
+    width: fit-content;
+    font-size: 14px;
+    display: flex;
+    padding: 0.5rem 0;
+    gap: 1px;
+    justify-content: center;
+}
+
+.realDepartures_text span{
+    position: relative;
+    top: 3px;
+    left: 1px;
+}
+
+.realDepartures_text img {
+    height: 1rem;
+}
+
+
+:host ::ng-deep .warning-red{
+    color: red;
+}
+:host ::ng-deep .warning-yellow{
+    color: yellow;
+}
+:host ::ng-deep .options_button_warning{
+    width: 100%;
+    visibility: hidden;
+    font-size: 1.2rem;
+}
+
+:host ::ng-deep .options_button_warning.visible{
+    visibility: visible;
+}
+:host ::ng-deep .options_button_warning:hover + .options_button_warning_text{
+    visibility: visible;
+}
+
+:host ::ng-deep .options_button_warning_text{
+    visibility: hidden;
+    position: absolute;
+    z-index: 999;
+    bottom: -2rem;
+    background-color: var(--color-text-grey);
+    color: black;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+
+:host ::ng-deep .options_button_button{
+    visibility: hidden;
+    height: 100%;
+    border: 0;
+    border-left: 1px solid var(--color-background3);
+    margin-left: auto;
+    font-size: 1.6rem;
+    width: 100%;
+}
+
+:host ::ng-deep .chosenTime .options_button_button{
+    visibility: visible;
+}
+:host ::ng-deep .chosenTime .options_button{
+    cursor: auto;
+}
+
+:host ::ng-deep .tooltip {
+    color:#c1c1c1;
+    
+}
+
+:host ::ng-deep .options_button_text {
+}
+
+:host ::ng-deep .options_button {
+    height: 3rem;
+    width: 100%;
+    border: 0;
+    scroll-snap-align: start;
+    display: grid;
+    grid-template-columns: 42px 5px 1fr 10px 1fr 42px;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0;
+    padding-left: 6px;
+}
+
+:host ::ng-deep .arrowContainer{
+    flex: 1 0 33%;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+}
+
+:host ::ng-deep .arrow {
+    border: solid var(--color-text);
+    border-width: 0 3px 3px 0;
+    display: inline-block;
+    padding: 3px;
+    transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+    height: min-content;
+    width: min-content;
+}
+
+:host ::ng-deep .options_text{
+    display: flex;
+    padding: 4px;
+    border-radius: 0.5em;
+    visibility: visible;
+    transition: visibility 0s 0s;
+    min-width: 42px;
+    justify-content: center;
+    margin-right: auto;
+    position: sticky;
+}
+
+:host ::ng-deep .options_text::after{
+    position: absolute;
+    content: "";
+    width: 8px;
+    height: 12px;
+    left: 19px;
+    top: 23px;
+    background-color: var(--color-main);
+    
+}
+:host ::ng-deep .options_text::before{
+    position: absolute;
+    content: "";
+    width: 8px;
+    height: 13px;
+    left: 19px;
+    top: -13px;
+    background-color: var(--color-main);
+    
+}
+
+:host ::ng-deep .whiteHover:hover {
+    box-shadow: 0px 0px 4px 0px rgba(255,255,255,0.75) inset;
+}
+
+:host ::ng-deep .addedStations_options{
+    max-height: 9rem;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scroll-snap-stop: always;
+}
+
+:host ::ng-deep ul:has( > .addedStations_options){
+    position: relative;
+}
+
+:host ::ng-deep dul:has( > .addedStations_options > li:nth-child(4))::before{
+    content: "/\\";
+    position:absolute;
+    right: 0.5rem;
+    top: 3.3rem;
+    color: #c1c1c1;
+}
+
+:host ::ng-deep dul:has( > .addedStations_options > li:nth-child(4))::after{
+    content: "\\/";
+    position:absolute;
+    right: 0.5rem;
+    top: 10.7rem;
+    color: #c1c1c1;
+}
+
+.scrollInd{
+    visibility: hidden;
+    position:absolute;
+    right: 0.5rem;
+    top: 10.7rem;
+    color: #c1c1c1;
+    pointer-events: none;
+
+    opacity: 0.8;
+    border-bottom: 2px solid var(--color-main);
+    border-right: 2px solid var(--color-main);
+    -webkit-transform: translate(-50%, 0%) rotate(45deg);
+    -moz-transform: translate(-50%, 0%) rotate(45deg);
+    transform: translate(-50%, 0%) rotate(45deg);
+    width: 13px;
+    height: 13px;
+    animation: fade_move_down 2s ease-in-out infinite;
+    animation-direction: alternate;
+}
+.scrollInd:first-child{
+    right: 0.5rem;
+    top: 3.3rem;
+    
+    animation: fade_move_down_top 2s ease-in-out infinite;
+    animation-direction: alternate;
+}
+
+.scrollInd.visible{
+    visibility: visible;
+}
+
+:host ::ng-deep button{
+    background-color: var(--color-background2);
+    color: var(--color-text);
+}
+
+
+:host ::ng-deep .metros{
+    background-color: var(--c_fallback);
+}
+
+:host ::ng-deep .blaa{
+    background-color: var(--c_metro_blue);
+}
+
+:host ::ng-deep .roda{
+    background-color: var(--c_metro_red);
+}
+
+:host ::ng-deep .grona{
+    background-color: var(--c_metro_green);
+}
+
+
+:host ::ng-deep .trams{
+    background-color: var(--c_fallback);
+}
+
+:host ::ng-deep .roslagbanan{
+    background-color: var(--c_tram_roslagsbanan);
+}
+
+:host ::ng-deep .saljobanan{
+    background-color: var(--c_tram_saltsjobanan);
+}
+
+:host ::ng-deep .nockebybanan{
+    background-color: var(--c_tram_nockebybanan);
+}
+
+:host ::ng-deep .lidingobanan{
+    background-color: var(--c_tram_lidingobanan);
+}
+
+:host ::ng-deep .tvarbanan{
+    background-color: var(--c_tram_tvarbanan);
+}
+
+:host ::ng-deep .sparvagscity{
+    background-color: var(--c_tram_sparvagscity);
+}
+
+:host ::ng-deep .buses{
+    background-color: var(--c_bus_red);
+}
+
+:host ::ng-deep .blabuss{
+    background-color: var(--c_bus_blue);
+}
+
+:host ::ng-deep .ersattningsbus{
+    background-color: var(--c_bus_red);
+}
+
+:host ::ng-deep .nartrafiken{
+    background-color: var(--c_bus_red);
+}
+
+:host ::ng-deep .ships{
+    background-color: var(--c_ship);
+}
+
+:host ::ng-deep .trains{
+    background-color: var(--c_fallback);
+}
+
+:host ::ng-deep .pendeltag{
+    background-color: var(--c_train_commuterrail);
+}
+
+/*animated scroll arrow animation*/
+@-webkit-keyframes fade_move_down {
+  0%   { -webkit-transform:translate(-10px,-10px) rotate(45deg); opacity: 0;  }
+  50%  { opacity: 1;  }
+  100% { -webkit-transform:translate(-10px,10px) rotate(45deg); opacity: 0; }
+}
+@-moz-keyframes fade_move_down {
+  0%   { -moz-transform:translate(-10px,-10px) rotate(45deg); opacity: 0;  }
+  50%  { opacity: 1;  }
+  100% { -moz-transform:translate(-10px,10px) rotate(45deg); opacity: 0; }
+}
+@keyframes fade_move_down {
+  0%   { transform:translate(-10px,-6px) rotate(45deg);}
+  20% { transform:translate(-10px,-2px) rotate(45deg);}
+  100% { transform:translate(-10px,-2px) rotate(45deg);}
+}
+/*animated scroll arrow animation*/
+@-webkit-keyframes fade_move_down_top {
+  0%   { -webkit-transform:translate(-10px,-10px) rotate(225deg); opacity: 0;  }
+  50%  { opacity: 1;  }
+  100% { -webkit-transform:translate(-10px,10px) rotate(225deg); opacity: 0; }
+}
+@-moz-keyframes fade_move_down_top {
+  0%   { -moz-transform:translate(-10px,-10px) rotate(225deg); opacity: 0;  }
+  50%  { opacity: 1;  }
+  100% { -moz-transform:translate(-10px,10px) rotate(225deg); opacity: 0; }
+}
+@keyframes fade_move_down_top {
+  0%   { transform:translate(-10px,6px) rotate(225deg);}
+  20% { transform:translate(-10px,2px) rotate(225deg);}
+  100% { transform:translate(-10px,2px) rotate(225deg);}
+}

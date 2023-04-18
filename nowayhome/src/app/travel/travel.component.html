@@ -1,0 +1,133 @@
+<div class="travel">    
+    <div class="gridContainer">
+        <div class="subTitle_Background"></div>
+        <h3 class="subTitle">Add Station</h3>
+        <div class="inputContainer">
+            
+            <div class="fromToContainer">
+                <div class="fromTo from roundedTop">
+                    <h5>From: </h5> <span>{{stationPair.one?.name}}</span>
+                </div>
+                <div class="fromTo to roundedBottom">
+                    <h5>To: </h5> <span></span>
+                </div>
+            </div>
+            <div class="inputStationContainer">
+                <input id="station" [(ngModel)]="station" class="inputStation" placeholder="Station" (keyup.enter)="onInputEnterEvent($event)">
+                <button class="inputStation_button" (click)="getStationName(station)">Search</button> 
+            </div>
+                       
+            <div class="stationList">
+                <ul>
+                    <li *ngFor="let station of stations;index as i">
+                        <button class="whiteHover" (click)="addStation(i)">{{station["Name"]}}</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <h3 class="subTitle">Added Trips
+        </h3>
+
+        <div class="addedStations">
+            <div class="addedStations_listContainer" *ngFor="let pair of addedStations; let i = index">
+
+
+                <div class="addedStations_timeBetween" [class.invisible]="!(tripTimesMS[i] || (i === 0 && tripTimes[0]))">
+                    <div class="arrowContainer" *ngIf="i !== 0"> 
+                        <div class="arrow"></div>
+                    </div>
+                    <div [class.missed]="tripTimesMS[i]! < 0">
+                        {{i !== 0? 
+                            (tripTimesMS[i]! > 0) ? (tripTimesMS[i] | date:'mm:ss') : "Missed"
+                             : (tripTimesMSFirst | async)! > 0 ? (tripTimesMSFirst | async | date:'mm:ss') : "Missed" }}
+                    </div>
+                    <div class="arrowContainer"> 
+                        <div class="arrow"></div>
+                    </div>
+                </div>
+                <div class="addedStations_list">
+                    <div class="fromToContainerReload roundedBottom roundedTop">
+                        <div class="fromTo from roundedTop">
+                            <h5>From: </h5> <span>{{pair.one.name}}</span>
+                        </div>
+                        <div *ngIf="pair.one.dep" class="realDepartures">
+                            <div class="realDepartures_text">
+                                <img src="assets/bus.svg" alt="" class="filterMain">
+                                <span>{{pair.one.dep["Buses"].length}}</span>
+                            </div>
+                            <div class="realDepartures_text">
+                                <img src="assets/train.svg" alt="" class="filterMain">
+                                <span>{{pair.one.dep["Trains"].length}}</span>
+                            </div>
+                            <div class="realDepartures_text">
+                                <img src="assets/tram.svg" alt="" class="filterMain">
+                                <span>{{pair.one.dep["Trams"].length}}</span>
+                            </div>
+                            <div class="realDepartures_text">
+                                <img src="assets/metro.svg" alt="" class="filterMain">
+                                <span>{{pair.one.dep["Metros"].length}}</span>
+                            </div>
+                            <div class="realDepartures_text">
+                                <img src="assets/ship.svg" alt="" class="filterMain">
+                                <span>{{pair.one.dep["Ships"].length}}</span>
+                            </div>
+                        </div>
+                        <button class="fromTo_delete fromTo_sideButton" (click)="deleteStations(i); tripTimeCalcFromDelete(i)">×</button>
+                        <button class="fromTo_reload fromTo_sideButton" (click)="getTraffic(pair.one, pair.two); clearTraffic(pair.one, pair.two, i); clearSelect(pair.one, pair.two, i); tripTimeCalcNull(i)">⟳</button>
+                        <button class="fromTo_switch fromTo_sideButton" (click)="clearTraffic(pair.one, pair.two, i); clearSelect(pair.one, pair.two, i); switchStations(pair.one, pair.two, i); tripTimeCalcNull(i)">⇅</button>
+                        <div class="fromTo to mainLineBefore">
+                            <h5>To: </h5> <span>{{pair.two.name}}</span>
+                        </div>
+                        <div *ngIf="pair.two.dep" class="realDepartures roundedBottom">
+                            <div class="realDepartures_text">
+                                <img src="assets/bus.svg" alt="" class="filterMain">
+                                <span>{{pair.two.dep["Buses"].length}}</span>
+                            </div>
+                            <div class="realDepartures_text">
+                                <img src="assets/train.svg" alt="" class="filterMain">
+                                <span>{{pair.two.dep["Trains"].length}}</span>
+                            </div>
+                            <div class="realDepartures_text">
+                                <img src="assets/tram.svg" alt="" class="filterMain">
+                                <span>{{pair.two.dep["Trams"].length}}</span>
+                            </div>
+                            <div class="realDepartures_text">
+                                <img src="assets/metro.svg" alt="" class="filterMain">
+                                <span>{{pair.two.dep["Metros"].length}}</span>
+                            </div>
+                            <div class="realDepartures_text">
+                                <img src="assets/ship.svg" alt="" class="filterMain">
+                                <span>{{pair.two.dep["Ships"].length}}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <select id="{{pair.one.siteID}}{{pair.two.siteID}}{{i}}" (change)="getMatchingTraffic(pair.one, pair.two, i)" class="addedStations_select">
+                        <option value="Choose Mode" selected disabled hidden class="greyText">Choose Mode</option>
+                        <option>buses</option>
+                        <option>trains</option>
+                        <option>trams</option>
+                        <option>metros</option>
+                        <option>ships</option>
+                    </select>    
+                    <ul>
+                        <div class="scrollInd"></div>
+                        <li class="centerText">
+                            <div class="fromToMarker fromToMarker_top"></div>
+                            {{pair.one.name}}
+                        </li>
+                        <ul id="{{pair.one.siteID}}{{pair.two.siteID}}{{i}}ul" class="addedStations_options"> 
+                        </ul>
+                        <li class="centerText roundedBottom">
+                            <div class="fromToMarker fromToMarker_bottom"></div>
+                            {{pair.two.name}}
+                        </li>
+                        <div class="scrollInd"></div>
+                    </ul>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>

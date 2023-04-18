@@ -11,7 +11,6 @@ export class ApiServiceService {
 
   private realkey = "cea6074a2f0248a3b466aae7a88af063"
   private namekey = "968f31ed688a44bcbb24bafd5fc5a40b"
-  private createURL = "https://oguingq7nn6tyymts6zy24v5sm0nkcfb.lambda-url.eu-north-1.on.aws/post/"
   private URLStationReal = "http://api.sl.se/api2/realtimedeparturesv4.json?key=" + this.realkey
   private URLStationName = "https://api.sl.se/api2/typeahead.json?key=" + this.namekey
 
@@ -29,7 +28,6 @@ export class ApiServiceService {
   ) { }
 
   getStationName(station: string): ResponseWrapper{
-    //this.getURL = "https://localhost:7158/get/"
 
     try {
       

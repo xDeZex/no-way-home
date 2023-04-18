@@ -11,7 +11,7 @@ export class ApiServiceService {
 
   private realkey = "cea6074a2f0248a3b466aae7a88af063"
   private namekey = "968f31ed688a44bcbb24bafd5fc5a40b"
-  private URLStationReal = "http://api.sl.se/api2/realtimedeparturesv4.json?key=" + this.realkey
+  private URLStationReal = "https://api.sl.se/api2/realtimedeparturesv4.json?key=" + this.realkey
   private URLStationName = "https://api.sl.se/api2/typeahead.json?key=" + this.namekey
 
 

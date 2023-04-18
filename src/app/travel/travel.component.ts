@@ -676,10 +676,8 @@ export class TravelComponent implements OnInit{
   }[]= []
 
   stations = []
-  station: string = "Stockholm"
+  station: string = ""
   key = "cea6074a2f0248a3b466aae7a88af063"
-  arstaberg = 9531
-  alvik = 9112
 
 
   travelModes = ["bus", "metro", "train", "tram", "ship"]

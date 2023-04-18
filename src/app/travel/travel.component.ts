@@ -170,8 +170,8 @@ export class TravelComponent implements OnInit{
     let id = startStation.siteID + endStation.siteID + index
     let listUL = (document.getElementById(id + "ul") as HTMLUListElement)
 
-    let i
-    (listUL.parentElement?.previousElementSibling as HTMLSelectElement).value = "Choose Mode"
+    let temp = listUL.parentElement?.previousElementSibling as HTMLSelectElement
+    temp.value = "Choose Mode"
   }
 
   clearTraffic(startStation: Station, endStation: Station, index:number){
@@ -187,7 +187,8 @@ export class TravelComponent implements OnInit{
     let chosen = document.getElementsByClassName("chosenTime")
     if(chosen.length === 1){
       if(chosen[0].firstChild !== null){
-        (chosen[0].firstChild as HTMLButtonElement).classList.add("whiteHover")
+        let temp = chosen[0].firstChild as HTMLButtonElement
+        temp.classList.add("whiteHover")
         this.tripTimes[index] = null
         this.tripTimeCalc()
       }
@@ -530,7 +531,8 @@ export class TravelComponent implements OnInit{
     parent.classList.remove("chosenTime")
 
     if(parent.firstChild !== null){
-      (parent.firstChild as HTMLButtonElement).classList.add("whiteHover")
+      let temp = parent.firstChild as HTMLButtonElement
+      temp.classList.add("whiteHover")
       this.tripTimes[index] = null
       this.tripTimeCalc()
     }
@@ -572,7 +574,8 @@ export class TravelComponent implements OnInit{
     parent.classList.add("chosenTime")
 
     if(parent.firstChild !== null){
-      (parent.firstChild as HTMLButtonElement).classList.remove("whiteHover")
+      let temp = parent.firstChild as HTMLButtonElement
+      temp.classList.remove("whiteHover")
       this.tripTimes[index] = fromTo
       this.tripTimeCalc()
     }

@@ -44,10 +44,9 @@ ul{
 .gridContainer{
     display: grid;
     grid-template-columns: 1fr 3fr;
-    grid-template-rows: auto repeat(2, 1fr);
+    grid-template-rows: auto 1fr;
     grid-template-areas:    "titleInput titleAddedList"
-                            "input addedList"
-                            "stationList addedList";
+                            "input addedList";
     column-gap: 2rem;
 }
 
@@ -134,14 +133,6 @@ ul{
     display: flex;
 }
 
-.addedStations_timeBetween .arrow{
-    
-}
-.addedStations_timeBetween .arrow:first{
-    
-
-}
-
 .addedStations_list{
     display: flex;
     flex-direction: column;
@@ -149,6 +140,10 @@ ul{
     background-color: var(--color-grey-transparent);
     border-radius: 1rem;
     min-width: 268px;
+}
+
+.addedStations_options li {
+    position: relative;
 }
 
 .addedStations_options::-webkit-scrollbar-track{
@@ -182,9 +177,6 @@ ul{
 .addedStations_list li:last-child{
     border-top: 1px solid var(--color-main);
     border-radius: 0 0 0.5rem 0.5rem;
-}
-
-.addedStations_list > ul > li {
 }
 
 .fromToMarker{
@@ -427,9 +419,6 @@ input:-webkit-autofill:focus{
     
 }
 
-:host ::ng-deep .options_button_text {
-}
-
 :host ::ng-deep .options_button {
     height: 3rem;
     width: 100%;
@@ -511,29 +500,14 @@ input:-webkit-autofill:focus{
     position: relative;
 }
 
-:host ::ng-deep dul:has( > .addedStations_options > li:nth-child(4))::before{
-    content: "/\\";
-    position:absolute;
-    right: 0.5rem;
-    top: 3.3rem;
-    color: #c1c1c1;
-}
-
-:host ::ng-deep dul:has( > .addedStations_options > li:nth-child(4))::after{
-    content: "\\/";
-    position:absolute;
-    right: 0.5rem;
-    top: 10.7rem;
-    color: #c1c1c1;
-}
-
 .scrollInd{
-    visibility: hidden;
+    display: none;
     position:absolute;
     right: 0.5rem;
     top: 10.7rem;
     color: #c1c1c1;
     pointer-events: none;
+    z-index: 99;
 
     opacity: 0.8;
     border-bottom: 2px solid var(--color-main);
@@ -555,7 +529,7 @@ input:-webkit-autofill:focus{
 }
 
 .scrollInd.visible{
-    visibility: visible;
+    display: block;
 }
 
 :host ::ng-deep button{
@@ -668,4 +642,40 @@ input:-webkit-autofill:focus{
   0%   { transform:translate(-10px,6px) rotate(225deg);}
   20% { transform:translate(-10px,2px) rotate(225deg);}
   100% { transform:translate(-10px,2px) rotate(225deg);}
+}
+
+@media only screen and (max-width: 680px) {
+    .gridContainer{
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        grid-template-areas:    "input"
+                                "addedList";
+        column-gap: 0;
+    }
+    .subTitle{
+        display: none;
+    }
+    .subTitle_Background{
+        display: none;
+    }
+
+    .addedStations{
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        grid-auto-rows: auto;
+        row-gap: 0rem;
+        margin: 0;
+    }
+    .addedStations_listContainer{
+        grid-template-columns: none;
+        grid-template-rows: 3rem 1fr;
+    }
+    .addedStations_timeBetween{
+        text-align: center;
+    }
+
+    .arrowContainer:last-child .arrow{
+        transform: rotate(45deg);
+        -webkit-transform: rotate(45deg);
+    }
 }

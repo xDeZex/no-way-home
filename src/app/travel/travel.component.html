@@ -34,6 +34,7 @@
 
 
                 <div class="addedStations_timeBetween" [class.invisible]="!(tripTimesMS[i] || (i === 0 && tripTimes[0]))">
+                    <div *ngIf="i===0"></div>
                     <div class="arrowContainer" *ngIf="i !== 0"> 
                         <div class="arrow"></div>
                     </div>

@@ -144,7 +144,8 @@ export class TravelComponent implements OnInit{
     });
     
     let totalScroll = e.scrollHeight - e.offsetHeight
-    if(e.childElementCount > 5){
+    console.log(e.childElementCount)
+    if(e.childElementCount > 3){
       if(totalScroll <= scrollSaved){
         e.parentElement?.lastElementChild?.classList.remove("visible")
       }
@@ -157,6 +158,10 @@ export class TravelComponent implements OnInit{
       else{
         e.parentElement?.firstElementChild?.classList.add("visible")
       }
+    }
+    else{
+      e.parentElement?.lastElementChild?.classList.remove("visible")
+      e.parentElement?.firstElementChild?.classList.remove("visible")
     }
     
   }
@@ -521,12 +526,13 @@ export class TravelComponent implements OnInit{
       console.error("Couldn't find parent of pressed button")
       return
     }
-
-    if(parent.previousSibling !== null)
-      parent.parentElement?.parentElement?.firstElementChild?.classList.add("visible")
-
-    if(parent.nextSibling !== null)
-      parent.parentElement?.parentElement?.lastElementChild?.classList.add("visible")
+    if(parent.parentElement!.childElementCount > 3){
+      if(parent.previousSibling !== null)
+        parent.parentElement?.parentElement?.firstElementChild?.classList.add("visible")
+  
+      if(parent.nextSibling !== null)
+        parent.parentElement?.parentElement?.lastElementChild?.classList.add("visible")
+    }
 
     parent.classList.remove("chosenTime")
 

@@ -301,7 +301,7 @@ ul{
 .inputStationContainer{
     display: flex;
     flex-direction: row;
-    
+    margin-bottom: 0.5rem;
 }
 .inputStation{
     padding: 1em;
@@ -422,6 +422,7 @@ input:-webkit-autofill:focus{
 :host ::ng-deep .options_button {
     height: 3rem;
     width: 100%;
+    min-width: fit-content;
     border: 0;
     scroll-snap-align: start;
     display: grid;
@@ -432,6 +433,7 @@ input:-webkit-autofill:focus{
     gap: 0.5rem;
     padding: 0;
     padding-left: 6px;
+
 }
 
 :host ::ng-deep .arrowContainer{

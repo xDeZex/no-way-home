@@ -1,4 +1,4 @@
-<div class="travel">    
+<div class="travel"> 
     <div class="gridContainer">
         <div class="subTitle_Background"></div>
         <h3 class="subTitle">Add Station</h3>
@@ -16,7 +16,8 @@
                 <input id="station" [(ngModel)]="station" class="inputStation" placeholder="Station" (keyup.enter)="onInputEnterEvent($event)">
                 <button class="inputStation_button" (click)="getStationName(station)">Search</button> 
             </div>
-                       
+            
+            <button class="roundedBottom roundedTop whiteHover" (click)="getRoute()">Save URL of Route</button>   
             <div class="stationList">
                 <ul>
                     <li *ngFor="let station of stations;index as i">

@@ -5,6 +5,7 @@ import { StationPair } from '../stationPair';
 import { StationPairNull } from '../stationPairNull';
 import { Departure, Departures } from '../departures';
 import { Observable, map, of, takeWhile, timer } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-travel',
@@ -13,7 +14,7 @@ import { Observable, map, of, takeWhile, timer } from 'rxjs';
 })
 export class TravelComponent implements OnInit{
 
-  constructor(private api: ApiServiceService){}
+  constructor(private api: ApiServiceService, private route: ActivatedRoute){}
 
 
   preventDefault(e:Event) {    
@@ -21,6 +22,21 @@ export class TravelComponent implements OnInit{
   }
   
   ngOnInit(){
+    this.route.queryParams
+      .subscribe(params => {
+        if(params["station"] !== undefined){
+          this.queryStation = params["station"]
+        }
+        if(params["name"] !== undefined){
+          this.queryStationName = params["name"]
+        }
+        console.log(this.queryStation, this.queryStationName)
+        if(this.queryStation.length === this.queryStationName.length)
+        for (let i = 0; i < this.queryStation.length; i++) {
+          this.addStationQuery(this.queryStation[i], this.queryStationName[i])
+        }
+      }
+    );
   }
 
   onInputEnterEvent(e: Event){
@@ -38,6 +54,27 @@ export class TravelComponent implements OnInit{
     ret.body.subscribe((recJSON: any) => {
       this.stations = recJSON["ResponseData"]
     })
+  }
+
+  addStationQuery(siteID: string, name: string){
+    let station: Station = {name: name, siteID: siteID, dep: null}
+
+    if(this.stationPair.one === null){
+      this.stationPair.one = station
+
+    }
+    else {
+      this.stationPair.two = station
+
+    }
+    this.stations.length = 0
+    if (this.stationPair.two !== null){
+
+      this.addedStations.push({one: this.stationPair.one, two: this.stationPair.two})
+      this.getTraffic(this.stationPair.one, this.stationPair.two)
+      this.stationPair.one = null
+      this.stationPair.two = null
+    }
   }
 
   addStation(index: number){
@@ -666,6 +703,22 @@ export class TravelComponent implements OnInit{
     this.addedStations.splice(index, 1)
   }
 
+  getRoute(){
+    let url = []
+    url.push(window.location.href.split('?')[0] + "?")
+    this.addedStations.forEach((sp: StationPair) =>{
+      console.log(sp.one.siteID, sp.two.siteID)
+      url.push("station=" + sp.one.siteID + "&" + "name=" + sp.one.name + "&" + "station=" + sp.two.siteID + "&" + "name=" + sp.two.name + "&")
+    })
+
+    console.log(url)
+    let urlString = url.join("")
+    navigator.clipboard.writeText(urlString);
+
+    // Alert the copied text
+    alert("Copied the text: " + urlString);
+  }
+
   addedEventListeners: string[] = []
 
   tripTimesMSFirst?: Observable<number>
@@ -685,6 +738,8 @@ export class TravelComponent implements OnInit{
   station: string = ""
   key = "cea6074a2f0248a3b466aae7a88af063"
 
+  queryStation: string[] = []
+  queryStationName: string[] = []
 
   travelModes = ["bus", "metro", "train", "tram", "ship"]
 }

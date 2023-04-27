@@ -17,7 +17,6 @@
                 <button class="inputStation_button" (click)="getStationName(station)">Search</button> 
             </div>
             
-            <button class="roundedBottom roundedTop whiteHover" (click)="getRoute()">Save URL of Route</button>   
             <div class="stationList">
                 <ul>
                     <li *ngFor="let station of stations;index as i">
@@ -25,24 +24,69 @@
                     </li>
                 </ul>
             </div>
+            
+            <button class="roundedBottom roundedTop whiteHover saveURL" (click)="getRoutesURL()">Save URL of Route</button>
+            <button class="roundedBottom roundedTop whiteHover routes_menu" (click)="showRoutes()" id="routes_menu">Show Routes</button>
+
         </div>
-        
+        <div class="routesContainer">
+            <button *ngFor="let list of addedStations; let i = index" class="routes roundedBottom roundedTop centerText" [class.whiteHover]="i !== 0" [class.noneClick]="i === 0" [disabled]="i === 0" (click)="getRoute(i); tripTimeCalc()">
+            
+                <div *ngIf="list.length > 0">
+                    <p>{{list[0].one.name}}</p>
+                    <div class="routes_mode">
+                        <span>
+                            <ng-container *ngIf="(tripTimesMSFirst[i] | async)! !== null">
+                                <span>{{(tripTimesMSFirst[i] | async)! > 0 ? (tripTimesMSFirst[i] | async | date:'mm:ss') : "Missed"}}</span>
+                            </ng-container>
+                        </span>
+                        <span class="routes_mode_colors">
+                            <ng-container  *ngFor="let trip of list; let i2 = index">
+                                <ng-container *ngIf="trip.chosen !== undefined && i2 < 4">
+                                    <span  [ngClass]="trip.savedDepartures[trip.chosen].mode" class="routes_mode_color">
+                                    </span>
+                                </ng-container>
+                                <ng-container *ngIf="trip.chosen === undefined && i2 < 4">
+                                    <span class="routes_mode_color routes_mode_transparent">
+                                    </span>
+                                </ng-container>
+                            </ng-container>
+                        </span>
+                        <span>
+                            <ng-container *ngIf="tripTimesStartToEnd[i]">
+                                <ng-container *ngIf="tripTimesStartToEnd[i]! > 0">
+                                    
+                                    {{(tripTimesStartToEnd[i] | date:'H:mm:ss':'UTC') }}
+                                </ng-container>
+                            </ng-container>
+                        </span>
+                    
+                    </div>
+                    
+                    <p>{{list.at(-1)!.two.name}}</p>
+                </div>
+                <div *ngIf="list.length === 0">
+                    this route is empty
+                </div>
+            </button>
+            <button class="routes_add roundedBottom roundedTop whiteHover" (click)="saveRoute()">+</button>
+        </div>
         <h3 class="subTitle">Added Trips
         </h3>
 
         <div class="addedStations">
-            <div class="addedStations_listContainer" *ngFor="let pair of addedStations; let i = index">
+            <div class="addedStations_listContainer" *ngFor="let pair of addedStations[0]; let i = index">
+                
 
-
-                <div class="addedStations_timeBetween" [class.invisible]="!(tripTimesMS[i] || (i === 0 && tripTimes[0]))">
+                <div class="addedStations_timeBetween" [class.invisible]="!(tripTimesMS[0][i] || (i === 0 && tripTimes[0][0]))">
                     <div *ngIf="i===0"></div>
                     <div class="arrowContainer" *ngIf="i !== 0"> 
                         <div class="arrow"></div>
                     </div>
-                    <div [class.missed]="tripTimesMS[i]! < 0">
+                    <div [class.missed]="tripTimesMS[0][i]! < 0">
                         {{i !== 0? 
-                            (tripTimesMS[i]! > 0) ? (tripTimesMS[i] | date:'mm:ss') : "Missed"
-                             : (tripTimesMSFirst | async)! > 0 ? (tripTimesMSFirst | async | date:'mm:ss') : "Missed" }}
+                            (tripTimesMS[0][i]! > 0) ? (tripTimesMS[0][i] | date:'mm:ss') : "Missed"
+                             : (tripTimesMSFirst[0] | async)! > 0 ? (tripTimesMSFirst[0] | async | date:'mm:ss') : "Missed" }}
                     </div>
                     <div class="arrowContainer"> 
                         <div class="arrow"></div>
@@ -53,7 +97,8 @@
                         <div class="fromTo from roundedTop">
                             <h5>From: </h5> <span>{{pair.one.name}}</span>
                         </div>
-                        <div *ngIf="pair.one.dep" class="realDepartures">
+                        <div *ngIf="pair.one.dep && pair.one.dep?.Message !== ''" title="{{pair.one.dep.Message}}" class="warning-yellow centerText">⚠</div>
+                        <div *ngIf="pair.one.dep && !(pair.one.dep?.Message !== '')" class="realDepartures">
                             <div class="realDepartures_text">
                                 <img src="assets/bus.svg" alt="" class="filterMain">
                                 <span>{{pair.one.dep["Buses"].length}}</span>
@@ -75,13 +120,14 @@
                                 <span>{{pair.one.dep["Ships"].length}}</span>
                             </div>
                         </div>
-                        <button class="fromTo_delete fromTo_sideButton" (click)="deleteStations(i); tripTimeCalcFromDelete(i)">×</button>
-                        <button class="fromTo_reload fromTo_sideButton" (click)="getTraffic(pair.one, pair.two); clearTraffic(pair.one, pair.two, i); clearSelect(pair.one, pair.two, i); tripTimeCalcNull(i)">⟳</button>
-                        <button class="fromTo_switch fromTo_sideButton" (click)="clearTraffic(pair.one, pair.two, i); clearSelect(pair.one, pair.two, i); switchStations(pair.one, pair.two, i); tripTimeCalcNull(i)">⇅</button>
+                        <button class="fromTo_delete fromTo_sideButton whiteHover" (click)="deleteStations(i); tripTimeCalcFromDelete(i)">×</button>
+                        <button class="fromTo_reload fromTo_sideButton whiteHover" (click)="updateTraffic(pair.one, pair.two); clearTraffic(pair.one, pair.two, i); clearSelect(pair, i); tripTimeCalcNull(i); clearInd(pair.one, pair.two, i)">⟳</button>
+                        <button class="fromTo_switch fromTo_sideButton whiteHover" (click)="clearTraffic(pair.one, pair.two, i); clearInd(pair.one, pair.two, i); clearSelect(pair, i); switchStations(pair.one, pair.two, i); tripTimeCalcNull(i); ">⇅</button>
                         <div class="fromTo to mainLineBefore">
                             <h5>To: </h5> <span>{{pair.two.name}}</span>
                         </div>
-                        <div *ngIf="pair.two.dep" class="realDepartures roundedBottom">
+                        <div *ngIf="pair.two.dep && pair.two.dep?.Message !== ''" title="{{pair.two.dep.Message}}" class="warning-yellow centerText">⚠</div>
+                        <div *ngIf="pair.two.dep && !(pair.two.dep?.Message !== '')" class="realDepartures">
                             <div class="realDepartures_text">
                                 <img src="assets/bus.svg" alt="" class="filterMain">
                                 <span>{{pair.two.dep["Buses"].length}}</span>
@@ -103,23 +149,54 @@
                                 <span>{{pair.two.dep["Ships"].length}}</span>
                             </div>
                         </div>
+                        <div class="orderContainer roundedBottom">
+                            <button class="order_left whiteHover" (click)="moveStationPair(i, -1)"><span class="arrow arrow-left"></span></button>
+                            <span class="verticalDivide"></span>
+                            <button class="order_right whiteHover" (click)="moveStationPair(i, 1);"><span class="arrow"></span></button>
+                        </div>
                     </div>
                     
-                    <select id="{{pair.one.siteID}}{{pair.two.siteID}}{{i}}" (change)="getMatchingTraffic(pair.one, pair.two, i)" class="addedStations_select">
-                        <option value="Choose Mode" selected disabled hidden class="greyText">Choose Mode</option>
-                        <option>buses</option>
-                        <option>trains</option>
-                        <option>trams</option>
-                        <option>metros</option>
-                        <option>ships</option>
+                    <select id="{{pair.one.siteID}}{{pair.two.siteID}}{{i}}" (change)="getMatchingTraffic(pair, i)" class="addedStations_select">
+                        <ng-container *ngIf="pair.savedDepartures.length=== 0">
+                            <option value="Choose Mode" selected disabled hidden class="greyText">Choose Mode</option>    
+                            <option>buses</option>
+                            <option>trains</option>
+                            <option>trams</option>
+                            <option>metros</option>
+                            <option>ships</option>
+                        </ng-container>
+                        <ng-container *ngIf="pair.savedDepartures.length !== 0">
+                            <option value="Choose Mode" selected disabled hidden class="greyText">Choose Mode</option>  
+                            <option [selected]="pair.savedDepartures[0].mode.includes('buses')">buses</option>
+                            <option [selected]="pair.savedDepartures[0].mode.includes('trains')">trains</option>
+                            <option [selected]="pair.savedDepartures[0].mode.includes('trams')">trams</option>
+                            <option [selected]="pair.savedDepartures[0].mode.includes('metros')">metros</option>
+                            <option [selected]="pair.savedDepartures[0].mode.includes('ships')">ships</option>
+                        </ng-container>
                     </select>    
-                    <ul>
+                    <ul class="addedStations_optionsContainer">
                         <div class="scrollInd"></div>
                         <li class="centerText">
                             <div class="fromToMarker fromToMarker_top"></div>
                             {{pair.one.name}}
                         </li>
-                        <ul id="{{pair.one.siteID}}{{pair.two.siteID}}{{i}}ul" class="addedStations_options"> 
+                        <ul id="{{pair.one.siteID}}{{pair.two.siteID}}{{i}}ul" class="addedStations_options" (wheel)="this.preventDefault($event); this.scrollOptions($event, pair.one.siteID + pair.two.siteID + i + 'ul', this.convertRemToPixels(3))" (touchmove)="scrollTouch($event, pair.one.siteID + pair.two.siteID + i + 'ul')"> 
+
+                            <li *ngFor="let dep of pair.savedDepartures; let i2 = index" [class.displayNone]="pair.chosen !== undefined && pair.chosen !== i2" [class.chosenTime]="pair.chosen === i2">
+                                <button class="options_button" [class.whiteHover]="pair.chosen === undefined" (click)="preventDefault($event); compressList($event, {from: dep.fromDate, to: dep.toDate}, i, i2)" [disabled]="pair.chosen === i2">
+                                    <span class="options_line" [ngClass]="dep.mode">{{dep.line}}</span>
+                                    <span class="options_button_warning" [class.visible]="dep.deviations.length > 0" [class.warning-red]="dep.deviationsImportance === 7" [class.warning-yellow]="dep.deviationsImportance < 7">⚠</span>
+                                    <span class="options_button_warning_text roundedBottom roundedTop">
+                                        <p *ngFor="let dev of dep.deviations">
+                                            {{dev.Text}}
+                                        </p>
+                                    </span>
+                                    <span class="options_button_text">{{dep.fromText}}</span>
+                                    <span class="arrow options_button_text"></span>
+                                    <span class="options_button_text" title="{{dep.toTextTitle}}" [class.tooltip]="dep.toTextTitle !== ''">{{dep.toText}}</span>
+                                    <button class="options_button_button whiteHover" (click)="preventDefault($event); deCompressList($event, i)">×</button>
+                                </button>
+                            </li>
                         </ul>
                         <li class="centerText roundedBottom">
                             <div class="fromToMarker fromToMarker_bottom"></div>

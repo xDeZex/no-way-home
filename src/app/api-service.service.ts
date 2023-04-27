@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Observable, ObservableInput, firstValueFrom, of, throwError } from 'rxjs';
 import { catchError, retry, timeout } from 'rxjs/operators';
 import { ResponseWrapper } from './responseWrapper';
+import { Departures } from './departures';
 
 @Injectable({
   providedIn: 'root'
@@ -27,55 +28,34 @@ export class ApiServiceService {
     private http: HttpClient,
   ) { }
 
-  getStationName(station: string): ResponseWrapper{
+  getStationName(station: string): Observable<JSON>{
 
-    try {
-      
       let ret = this.http.get<JSON>(`${this.URLStationName}&searchstring=${station}&stationsonly=true`, this.httpOptions).pipe(
         catchError(this.handleError.bind(this))
       );
 
+      return ret
 
-      let retBody: ResponseWrapper = {body : ret, error : null}
-      return retBody
-
-    } catch (error: any) {
-      this.error = error.message
-      let retError: ResponseWrapper = {body : null, error : error.message}
-      return retError
-    }
   }
 
-  getStationReal(station: string, time: string): ResponseWrapper {
-    
-    try {
+  getStationReal(station: string, time: string): Observable<JSON>{
+
       
+    
       let ret = this.http.get<JSON>(`${this.URLStationReal}&siteid=${station}&timewindow=${time}`, this.httpOptions).pipe(
         catchError(this.handleError.bind(this))
-      );
-      let retBody: ResponseWrapper = {body : ret, error : null}
-      return retBody
-
-    } catch (error: any) {
-      this.error = error.message
-      let retError: ResponseWrapper = {body : null, error : error.message}
-      return retError
-    }
+      )
+      return ret
   }
 
 
   handleError(error: HttpErrorResponse, caught: Observable<JSON>) {
-    console.log("ERROR")
-    if (error.status === 0) {
-      // A client-side or network error occurred. Handle it accordingly.
-    } 
-    else {
-      // The backend returned an unsuccessful response code.
-      // The response body may contain clues as to what went wrong.
-      console.error(
-        `Backend returned code ${error.status}, body was: `, error.error);
-    }
     // Return an observable with a user-facing error message.
-    return new Observable<JSON>()
+    let message = error.message
+    if(message.includes("0 Unknown Error")){
+      message = "You probably need to enable CORS with an extension"
+    }
+
+    return of(({error: message} as any as JSON))
   }
 }

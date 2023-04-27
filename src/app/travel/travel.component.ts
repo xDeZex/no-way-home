@@ -6,6 +6,8 @@ import { StationPairNull } from '../stationPairNull';
 import { Departure, Departures } from '../departures';
 import { Observable, map, of, takeWhile, timer } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
+import { SavedDeparture } from "../saved-departure";
+import * as CryptoJS from 'crypto-js';
 
 @Component({
   selector: 'app-travel',
@@ -24,20 +26,86 @@ export class TravelComponent implements OnInit{
   ngOnInit(){
     this.route.queryParams
       .subscribe(params => {
-        if(params["station"] !== undefined){
-          this.queryStation = params["station"]
+        try {
+          let json = ""
+          if(params["json"] !== undefined){
+              
+            json = params["json"]
+          }
+          else{
+            console.error("The URL has no json")
+            throw Error
+          }
+          if(json !== ""){
+            let solved = decodeURIComponent(json)
+
+            //http://localhost:4200/?json={"routes":[{"station":["9112","1079","1079","9523","9540","9541"],"name":["Alvik","Stockholm Odenplan","Stockholm Odenplan","Rönninge station","Gnesta","Mölnbo"]}]}
+
+            //http://localhost:4200/?hash={"station":["9000","9000","9600","9600","1854","1854"],"name":["Stockholm City","Stockholms central","Stockholm Odenplan","Stockholms östra","Stockholms södra","Stockholmsvägen"]}
+
+
+            params = JSON.parse(solved)
+          }
+          if(params["routes"] !== undefined){
+            let routes = params["routes"].reverse()
+            for (let index = 0; index < params["routes"].length; index++) {
+              if(routes[index]["station"] !== undefined){
+                this.queryStation = routes[index]["station"]
+              }
+              if(routes[index]["name"] !== undefined){
+                this.queryStationName = routes[index]["name"]
+              }
+              if(this.queryStation.length === this.queryStationName.length)
+                for (let i = 0; i < this.queryStation.length; i++) {
+                  this.addStationQuery(this.queryStation[i], this.queryStationName[i])
+                }
+                if(index !== params["routes"].length - 1){
+                  this.saveRoute()
+                  this.getRoute(index + 1)
+                }
+            }
+          }
+          else{
+            console.error("The URL has no routes")
+            throw Error
+          }
+          
+            
+          
+          
+        } catch (error) {
+          console.error("The URL was malformed")
         }
-        if(params["name"] !== undefined){
-          this.queryStationName = params["name"]
-        }
-        console.log(this.queryStation, this.queryStationName)
-        if(this.queryStation.length === this.queryStationName.length)
-        for (let i = 0; i < this.queryStation.length; i++) {
-          this.addStationQuery(this.queryStation[i], this.queryStationName[i])
-        }
+        
       }
     );
   }
+
+  getRoutesURL(){
+    let json: {routes: {station: string[], name:string[]}[]} = {routes: []}
+    let url: string[] = []
+    this.addedStations.forEach((spList: StationPair[], index) => {
+      json.routes[index] = {station: [], name: []}
+      spList.forEach((sp: StationPair) =>{
+        json.routes[index].name.push(sp.one.name)
+        json.routes[index].name.push(sp.two.name)
+        json.routes[index].station.push(sp.one.siteID)
+        json.routes[index].station.push(sp.two.siteID)
+      })
+    })
+    
+    let jsonString = JSON.stringify(json)
+
+    
+    let urlString = window.location.href.split('?')[0] + "?json=" + jsonString
+    navigator.clipboard.writeText(urlString);
+
+    // Alert the copied text
+    alert("Copied the text: " + urlString);
+
+    
+  }
+
 
   onInputEnterEvent(e: Event){
     this.getStationName(this.station)
@@ -45,14 +113,19 @@ export class TravelComponent implements OnInit{
 
   getStationName(station: string){
     let ret = this.api.getStationName(station)
-
-    if(ret.error !== null || ret.body === null){
-      console.error("Problem in getStationName " + ret.error)
+  
+    if(!ret){
+      console.error("Problem in getStationName")
       return
     }
 
-    ret.body.subscribe((recJSON: any) => {
-      this.stations = recJSON["ResponseData"]
+    ret.subscribe((recJSON: any) => {
+      if(Object.keys(recJSON).includes("ResponseData")){
+        this.stations = recJSON["ResponseData"]
+      }
+      else{
+        console.error(recJSON.error)
+      }
     })
   }
 
@@ -70,7 +143,7 @@ export class TravelComponent implements OnInit{
     this.stations.length = 0
     if (this.stationPair.two !== null){
 
-      this.addedStations.push({one: this.stationPair.one, two: this.stationPair.two})
+      this.addedStations[0].push({one: this.stationPair.one, two: this.stationPair.two, savedDepartures: []})
       this.getTraffic(this.stationPair.one, this.stationPair.two)
       this.stationPair.one = null
       this.stationPair.two = null
@@ -93,24 +166,40 @@ export class TravelComponent implements OnInit{
     this.stations.length = 0
     if (this.stationPair.two !== null){
 
-      this.addedStations.push({one: this.stationPair.one, two: this.stationPair.two})
+      this.addedStations[0].push({one: this.stationPair.one, two: this.stationPair.two, savedDepartures: []})
       this.getTraffic(this.stationPair.one, this.stationPair.two)
       this.stationPair.one = null
       this.stationPair.two = null
     }
   }
 
-  getTraffic(startStation: Station, endStation: Station){
-    let id = startStation.siteID + endStation.siteID
-    let startTime = "60"
-
-    let startNull = this.getStationReal(startStation, startTime)
-    let endNull = this.getStationReal(endStation, "60")
-
-    if(startNull === null || endNull === null){
-      console.error("Couldn't get at least one of the stations.")
-      return
+  updateTraffic(startStation: Station, endStation: Station){
+    if(this.lastCallRealTime[startStation.siteID] !== undefined){
+      if(this.lastCallRealTime[startStation.siteID] < Date.now() - 500){
+        this.getStationReal(startStation, "60")
+        this.lastCallRealTime[startStation.siteID] = Date.now()
+      }
+    } 
+    else{
+      this.getStationReal(startStation, "60")
+      this.lastCallRealTime[startStation.siteID] = Date.now()
     }
+    if(this.lastCallRealTime[endStation.siteID] !== undefined){
+      if(this.lastCallRealTime[endStation.siteID] < Date.now() - 500){
+        this.getStationReal(endStation, "60")
+        this.lastCallRealTime[endStation.siteID] = Date.now()
+      }
+    }
+    else{
+      this.getStationReal(endStation, "60")
+      this.lastCallRealTime[endStation.siteID] = Date.now()
+    }
+  }
+
+  getTraffic(startStation: Station, endStation: Station){
+    this.getStationReal(startStation, "60")
+    this.getStationReal(endStation, "60")
+    
   }
 
 
@@ -155,7 +244,14 @@ export class TravelComponent implements OnInit{
     return retList
   }
   
-  scrollOptions(event: WheelEvent, e: HTMLElement, length: number){
+  scrollOptions(event: WheelEvent, id:string, length: number){
+
+    let e = document.getElementById(id)
+
+    
+    if(e === null)
+      return
+
     let scroll = e.scrollTop
 
     let scrollSaved = scroll
@@ -181,7 +277,6 @@ export class TravelComponent implements OnInit{
     });
     
     let totalScroll = e.scrollHeight - e.offsetHeight
-    console.log(e.childElementCount)
     if(e.childElementCount > 3){
       if(totalScroll <= scrollSaved){
         e.parentElement?.lastElementChild?.classList.remove("visible")
@@ -203,20 +298,119 @@ export class TravelComponent implements OnInit{
     
   }
 
+  scrollTouch(event: TouchEvent, id: string){
+
+
+    let touch = null
+
+    if(this.previousTouch){
+      for (let i = 0; i < event.changedTouches.length; i++) {
+        if(event.changedTouches[i].identifier === this.previousTouch?.identifier)
+          touch = event.changedTouches[i];
+      }
+      if(touch === null){
+        this.previousTouch = null
+        return
+      }
+      let listUL = document.getElementById(id)
+      if(listUL === null)
+        return
+      
+      let touchChange = touch.pageY - this.previousTouch?.pageY
+      let totalScroll = listUL.scrollHeight - listUL.offsetHeight
+      if(listUL.childElementCount > 3){
+        if(listUL.scrollTop + 24 >= totalScroll){
+          listUL.parentElement?.lastElementChild?.classList.remove("visible")
+        }
+        else{
+          listUL.parentElement?.lastElementChild?.classList.add("visible")
+        }
+        if(listUL.scrollTop <= 24){
+          listUL.parentElement?.firstElementChild?.classList.remove("visible")
+        }
+        else{
+          listUL.parentElement?.firstElementChild?.classList.add("visible")
+        }
+      }
+      else{
+        listUL.parentElement?.lastElementChild?.classList.remove("visible")
+        listUL.parentElement?.firstElementChild?.classList.remove("visible")
+      }
+  
+  
+    }
+    if(!this.previousTouch)
+      this.previousTouch = event.changedTouches[0]
+    else
+      this.previousTouch = touch
+  }
+
   convertRemToPixels(rem: number): number {    
     return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
   }
 
-  clearSelect(startStation: Station, endStation: Station, index:number){
-    
+  moveStationPair(index: number, amount: number){
+    if(index + amount >= 0 && index + amount < this.addedStations[0].length){  
+      let temp = this.addedStations[0][index]
+      this.addedStations[0][index] = this.addedStations[0][index + amount]
+      this.addedStations[0][index + amount] = temp
+
+      let tempTime = this.tripTimes[0][index]
+      this.tripTimes[0][index] = this.tripTimes[0][index + amount]
+      this.tripTimes[0][index + amount] = tempTime
+
+      this.tripTimeCalc()
+
+    }
+
+  }
+
+  clearSelect(pair: StationPair, index:number){
+    let startStation = pair.one
+    let endStation = pair.two
     let id = startStation.siteID + endStation.siteID + index
     let listUL = (document.getElementById(id + "ul") as HTMLUListElement)
 
     let temp = listUL.parentElement?.previousElementSibling as HTMLSelectElement
     temp.value = "Choose Mode"
+    pair.chosen = undefined
+    pair.savedDepartures = []
+  }
+
+  clearInd(startStation: Station, endStation: Station, index:number){
+
+    let id = startStation.siteID + endStation.siteID + index + "ul"
+
+    let e = document.getElementById(id)
+
+    if(e !== null){
+      e.parentElement?.lastElementChild?.classList.remove("visible")
+      e.parentElement?.firstElementChild?.classList.remove("visible")
+    }
+    
+
+
+
+  }
+
+  initInd(){
+    let listOfUL = document.getElementsByClassName("addedStations_options")
+
+
+    for (let i = 0; i < listOfUL.length; i++) {
+      let element = listOfUL[i];
+      if(element.childElementCount > -1){
+        element.scrollTop = 0
+          
+        element.parentElement?.lastElementChild?.classList.add("visible")
+        element.parentElement?.firstElementChild?.classList.remove("visible")
+      }
+      
+    }
   }
 
   clearTraffic(startStation: Station, endStation: Station, index:number){
+    return
     let id = startStation.siteID + endStation.siteID + index
     let listUL = (document.getElementById(id + "ul") as HTMLUListElement)
 
@@ -231,7 +425,7 @@ export class TravelComponent implements OnInit{
       if(chosen[0].firstChild !== null){
         let temp = chosen[0].firstChild as HTMLButtonElement
         temp.classList.add("whiteHover")
-        this.tripTimes[index] = null
+        this.tripTimes[0][index] = null
         this.tripTimeCalc()
       }
     }
@@ -246,12 +440,24 @@ export class TravelComponent implements OnInit{
     
   }
 
-  getMatchingTraffic(startStation: Station, endStation: Station, index:number){
+  getMatchingTraffic(pair: StationPair, index:number){
+    let startStation = pair.one
+    let endStation = pair.two
+
+
     let id = startStation.siteID + endStation.siteID + index
 
-    let mode: string = "buses"
+    pair.chosen = undefined
+    this.tripTimeCalcNull(index)
+
+    let mode: string = ""
     if(document.getElementById(id) !== null)
       mode = (document.getElementById(id) as HTMLSelectElement).value
+
+    if(mode === ""){
+      console.error("No mode chosen")
+      return
+    }
     
     let listUL = (document.getElementById(id + "ul") as HTMLUListElement)
 
@@ -261,36 +467,25 @@ export class TravelComponent implements OnInit{
       return
     }
 
-    var supportsPassive = true;
-    var wheelOpt = supportsPassive ? { passive: false } : false;
-    var wheelEvent = 'onwheel' in document.createElement('div') ? 'wheel' : 'mousewheel';
-    
-    if(!this.addedEventListeners.includes(id)){
-      listUL.addEventListener('DOMMouseScroll', (e: Event) => {this.preventDefault(e); this.scrollOptions(e as WheelEvent, listUL, this.convertRemToPixels(3))}, false); // older FF
-      listUL.addEventListener(wheelEvent, (e: Event) => {this.preventDefault(e); this.scrollOptions(e as WheelEvent, listUL, this.convertRemToPixels(3))}, wheelOpt); // modern desktop
-      this.addedEventListeners.push(id)
-    }
     let matching = this.matchingTraffic(startStation.dep.getDepartures(mode), endStation.dep.getDepartures(mode))
     this.clearTraffic(startStation, endStation, index)
+    this.addedStations[0][index].savedDepartures = []
     matching.forEach(e => {
+      
+      let depFromText: string = ""
+      let depToText: string = ""
+      let depToTextTitle: string = ""
+      let depLine: string = ""
+      let depMode: string[] = []
+      let depIL: number = 0
+      let depDeviations: Array<{Consequence: string, ImportanceLevel: number, Text: string}> = []
           
 
-      let li = document.createElement('li') as HTMLLIElement
-      let button = document.createElement('button') as HTMLButtonElement
-      let text = document.createElement('span') as HTMLSpanElement
-      let buttonWarning = document.createElement('span') as HTMLSpanElement
-      let buttonWarningText = document.createElement('span') as HTMLSpanElement
-      let buttonTextLeft = document.createElement('span') as HTMLSpanElement
-      let buttonTextMiddle = document.createElement('span') as HTMLSpanElement
-      let buttonTextRight = document.createElement('span') as HTMLSpanElement
-      let buttonUnchoose = document.createElement('button') as HTMLButtonElement
       let start = e[0]
       let end = e[1]
 
       let startTimeFinal: Date
       let endTimeFinal: Date | null
-      
-      let modeDisplayClass: string[] = []
 
       if(start !== null && end !== null){
         let startTime = start.TimeTabledDateTime
@@ -307,9 +502,8 @@ export class TravelComponent implements OnInit{
         let startTimeText = startTime.toLocaleTimeString("se-SE", {hour12: false})
         let endTimeText = endTime.toLocaleTimeString("se-SE", {hour12: false})
 
-        buttonTextLeft.textContent = startTimeText
-        buttonTextMiddle.classList.add("arrow")
-        buttonTextRight.textContent = endTimeText
+        depFromText = startTimeText
+        depToText = endTimeText
 
         startTimeFinal = startTime
         endTimeFinal = endTime
@@ -322,11 +516,11 @@ export class TravelComponent implements OnInit{
         startTime = new Date(startTime)
         
         let startTimeText = startTime.toLocaleTimeString("se-SE", {hour12: false})
-        buttonTextLeft.textContent = startTimeText
-        buttonTextMiddle.classList.add("arrow")
-        buttonTextRight.textContent = "(?)"
-        buttonTextRight.title = "Precise data of departure time isn't available yet."
         
+        depFromText = startTimeText
+        depToText = "(?)"
+        depToTextTitle = "Precise data of departure time isn't available yet."
+
         let sameTripTime = 0
 
         this.stationTimes.forEach((e) => {
@@ -336,138 +530,120 @@ export class TravelComponent implements OnInit{
         })
         endTimeFinal = null
         if(sameTripTime !== 0){
-          buttonTextRight.textContent = new Date(startTime.getTime() + sameTripTime).toLocaleTimeString("se-SE", {hour12: false}) + " (?)"
+
+          depToText = new Date(startTime.getTime() + sameTripTime).toLocaleTimeString("se-SE", {hour12: false}) + " (?)"
+          depToTextTitle = "Estimation of departure time."
+
           endTimeFinal = new Date(startTime.getTime() + sameTripTime)
-          buttonTextRight.title = "Estimation of departure time."
         }
         
-        buttonTextRight.classList.add("tooltip")
 
         startTimeFinal = startTime
       }
 
       if(start !== null){
-            
-        text.innerHTML = start.LineNumber
+        depLine = start.LineNumber
+        //DEP
         if(mode === "buses"){
           switch (start.GroupOfLine) {
             case null:
-              modeDisplayClass = ["buses"]
+              depMode = ["buses"]
               break;
             case 'ersättningsbuss':
-              modeDisplayClass = ["buses", "ersattningsbuss"]
+              depMode = ["buses", "ersattningsbuss"]
               break;
             case 'blåbuss':
-              modeDisplayClass = ["buses", "blabuss"]
+              depMode = ["buses", "blabuss"]
               break;
             case 'närtrafiken':
-              modeDisplayClass = ["buses", "nartrafiken"]
+              depMode = ["buses", "nartrafiken"]
               break;
           
             default:
-              modeDisplayClass = ["buses"]
+              depMode = ["buses"]
               break;
           }
         }
         if(mode === "trams"){
           switch (start.GroupOfLine.toLowerCase()) {
             case "tvärbanan":
-              modeDisplayClass = ["trams", "tvarbanan"]
+              depMode = ["trams", "tvarbanan"]
               break;
             case "roslagsbanan":
-              modeDisplayClass = ["trams", "roslagsbanan"]
+              depMode = ["trams", "roslagsbanan"]
               break;
             case "spårväg city":
-              modeDisplayClass = ["trams", "sparvagcity"]
+              depMode = ["trams", "sparvagcity"]
               break;
             case "nockebybanan":
-              modeDisplayClass = ["trams", "nockebybanan"]
+              depMode = ["trams", "nockebybanan"]
               break;
             case "lidingöbanan":
-              modeDisplayClass = ["trams", "lidingobanan"]
+              depMode = ["trams", "lidingobanan"]
               break;
               
             default:
-              modeDisplayClass = ["trams"]
+              depMode = ["trams"]
               break;
           }
         }
         if(mode === "trains"){
           switch (start.GroupOfLine.toLowerCase()) {
             case "pendeltåg":
-              modeDisplayClass = ["trains", "pendeltag"]
+              depMode = ["trains", "pendeltag"]
               break;
           
             default:
-              modeDisplayClass = ["trains"]
+              depMode = ["trains"]
               break;
           }
         }
         if(mode === "metros"){
           switch (start.GroupOfLine.toLowerCase()) {
             case "tunnelbanans gröna linje":
-              modeDisplayClass = ["metros", "grona"]
+              depMode = ["metros", "grona"]
               break;
             case "tunnelbanans grön linje":
-              modeDisplayClass = ["metros", "grona"]
+              depMode = ["metros", "grona"]
               break;
             case "tunnelbanans blåa linje":
-              modeDisplayClass = ["metros", "blaa"]
+              depMode = ["metros", "blaa"]
               break;
             case "tunnelbanans blå linje":
-              modeDisplayClass = ["metros", "blaa"]
+              depMode = ["metros", "blaa"]
               break;
             case "tunnelbanans röda linje":
-              modeDisplayClass = ["metros", "roda"]
+              depMode = ["metros", "roda"]
               break;
             case "tunnelbanans röd linje":
-              modeDisplayClass = ["metros", "roda"]
+              depMode = ["metros", "roda"]
               break;
           
             default:
-              modeDisplayClass = ["metros"]
+              depMode = ["metros"]
               break;
           }
         }
         if(mode === "ships"){
           switch (start.GroupOfLine.toLowerCase()) {
             case "waxholmsbolagets":
-              modeDisplayClass = ["ships", "waxholmsbolagets"]
+              depMode = ["ships", "waxholmsbolagets"]
               break;
             case "pendelbåt":
-              modeDisplayClass = ["ships", "pendelbat"]
+              depMode = ["ships", "pendelbat"]
               break;
           
             default:
-              modeDisplayClass = ["ships"]
+              depMode = ["ships"]
               break;
           }
         }
       }
 
       if(matching.length > 3){
-        listUL.parentElement?.lastElementChild?.classList.add("visible")
+        
       }
-
-
-
-      buttonUnchoose.textContent = "×"
-      buttonUnchoose.classList.add("options_button_button")
-      buttonUnchoose.classList.add("whiteHover")
-      buttonUnchoose.addEventListener("click", (e:Event) => {this.preventDefault(e); this.deCompressList(e as MouseEvent, index)})
-
-      buttonWarning.classList.add("options_button_warning")
-      buttonWarningText.classList.add("options_button_warning_text", "roundedBottom", "roundedTop")
-      buttonTextLeft.classList.add("options_button_text")
-      buttonTextMiddle.classList.add("options_button_text")
-      buttonTextRight.classList.add("options_button_text")
-      button.classList.add("options_button")
-      button.classList.add("whiteHover")
-      text.classList.add("options_text")
-      modeDisplayClass.forEach(displayClass =>{
-        text.classList.add(displayClass)
-      })
-
+      
       let deviations: Array<{Consequence: string, ImportanceLevel: number, Text: string}> = []
       if(start !== null){
         if (start.Deviations !== null){
@@ -484,10 +660,9 @@ export class TravelComponent implements OnInit{
         }
       }
 
+
       if(deviations.length > 0){
 
-        buttonWarning.textContent = "⚠"
-        buttonWarning.classList.add("visible")
         let il = 0
         let addedDev: string[] = []
         deviations.forEach((dev: {Consequence: string, ImportanceLevel: number, Text: string}) =>{
@@ -496,59 +671,70 @@ export class TravelComponent implements OnInit{
           if(!addedDev.includes(dev.Text)){
             let p = (document.createElement("p") as HTMLParagraphElement)
             p.innerHTML = dev.Text
-            buttonWarningText.appendChild(p)
             addedDev.push(dev.Text)
+            depDeviations.push(dev)
           }
         })
-        if(il === 7){
-          buttonWarning.classList.add("warning-red")
-        }
-        else
-          buttonWarning.classList.add("warning-yellow")
+        depIL = il
       }
 
-      button.addEventListener("click", (e: Event) => {this.preventDefault(e); this.compressList(e as MouseEvent, index, {from: startTimeFinal, to: endTimeFinal})});
+      let SD: SavedDeparture = {line: depLine, fromText: depFromText, toText: depToText, toTextTitle: depToTextTitle, mode: depMode, deviations: depDeviations, fromDate: startTimeFinal!, toDate: endTimeFinal!, deviationsImportance: depIL}
 
-      
-      button.appendChild(text)
-      button.appendChild(buttonWarning)
-      button.appendChild(buttonWarningText)
-      button.appendChild(buttonTextLeft)
-      button.appendChild(buttonTextMiddle)
-      button.appendChild(buttonTextRight)
-      button.appendChild(buttonUnchoose)
-      li.appendChild(button)
-      listUL.appendChild(li)
+      this.addedStations[0][index].savedDepartures.push(SD)
 
     })
+    listUL.scrollTop = 0
+    if(matching.length > 3){
+      listUL.parentElement?.lastElementChild?.classList.add("visible")
+      listUL.parentElement?.firstElementChild?.classList.remove("visible")
+    }
+    else{
+      listUL.parentElement?.lastElementChild?.classList.remove("visible")
+      listUL.parentElement?.firstElementChild?.classList.remove("visible")
+    }
   }
 
-  getStationReal(station: Station, time: string){
+  getStationReal(station: Station, time: string): void{
+    if(this.StationsReal[station.siteID] !== undefined && this.StationsRealTime[station.siteID] !== undefined){
+      if(this.StationsRealTime[station.siteID] > Date.now() - 120000/2){
+        station.dep = this.StationsReal[station.siteID]
+        return
+      }
+    }
+
     let ret = this.api.getStationReal(station.siteID, time)
-  
-    
-    if(ret.error !== null || ret.body === null){
-      console.error("Nothing returned travel " + ret.error)
+
+    if(!ret){
+      console.error("Nothing returned travel")
       return
     }
     else{
 
-      ret.body.subscribe((recJSON: any) => {
-        if(recJSON.StatusCode !== null && recJSON.StatusCode !== 0){
-          console.error(recJSON.StatusCode)
-          console.error(recJSON.Message)
-        }
+      this.StationsRealTime[station.siteID] = Date.now()
+      ret.subscribe((recJSON: any) => {
         let dep: Departures | null = null
-
-        dep = new Departures(recJSON.Message, recJSON["ResponseData"]["Buses"], recJSON["ResponseData"]["Metros"], recJSON["ResponseData"]["Trains"], recJSON["ResponseData"]["Trams"], recJSON["ResponseData"]["Ships"])
-
+        
+        if(recJSON["error"] !== undefined){
+          console.error(recJSON.error)
+          dep = new Departures(recJSON.error, [], [], [], [], [])
+        }
+        else if(recJSON.StatusCode !== null && recJSON.StatusCode !== 0){
+          console.error(recJSON.Message, recJSON.StatusCode)
+          dep = new Departures(recJSON.Message, [], [], [], [], [])
+        }
+        else{
+          dep = new Departures("", recJSON["ResponseData"]["Buses"], recJSON["ResponseData"]["Metros"], recJSON["ResponseData"]["Trains"], recJSON["ResponseData"]["Trams"], recJSON["ResponseData"]["Ships"])
+        }
+        this.StationsReal[station.siteID] = dep
+        this.StationsRealTime[station.siteID] = Date.now()
         station.dep = dep
 
       })
     }
+
   }
 
-  deCompressList(e: MouseEvent, index: number){
+  deCompressList(e: MouseEvent, i: number){
 
     let button = e.target as HTMLButtonElement
 
@@ -563,12 +749,19 @@ export class TravelComponent implements OnInit{
       console.error("Couldn't find parent of pressed button")
       return
     }
+
+    
+    let index = Number.parseInt(parent.parentElement!.id.at(-3)!)
+
+
     if(parent.parentElement!.childElementCount > 3){
-      if(parent.previousSibling !== null)
+      if(parent.previousElementSibling !== null)
         parent.parentElement?.parentElement?.firstElementChild?.classList.add("visible")
   
-      if(parent.nextSibling !== null)
-        parent.parentElement?.parentElement?.lastElementChild?.classList.add("visible")
+      if(parent.nextElementSibling !== null)
+        if(parent.nextElementSibling.nextElementSibling !== null)
+          if(parent.nextElementSibling.nextElementSibling.nextElementSibling !== null)
+            parent.parentElement?.parentElement?.lastElementChild?.classList.add("visible")
     }
 
     parent.classList.remove("chosenTime")
@@ -576,8 +769,9 @@ export class TravelComponent implements OnInit{
     if(parent.firstChild !== null){
       let temp = parent.firstChild as HTMLButtonElement
       temp.classList.add("whiteHover")
-      this.tripTimes[index] = null
+      this.tripTimes[0][index] = null
       this.tripTimeCalc()
+      this.addedStations[0][i].chosen = undefined
     }
 
     let nextSib = parent.nextElementSibling
@@ -592,12 +786,13 @@ export class TravelComponent implements OnInit{
     }
   }
 
-  compressList(e: MouseEvent, index: number, fromTo: {from: Date, to: Date | null}){
+  compressList(e: MouseEvent, fromTo: {from: Date, to: Date | null}, i: number, i2: number){
 
     let button = e.target as HTMLButtonElement
 
     if(button.classList.contains("options_button_button"))
       return
+    
 
     let parent = button.parentElement
 
@@ -611,71 +806,81 @@ export class TravelComponent implements OnInit{
       return
     }
 
+    
+    let index = Number.parseInt(parent.parentElement!.id.at(-3)!)
+
+
     parent.parentElement?.parentElement?.firstElementChild?.classList.remove("visible")
     parent.parentElement?.parentElement?.lastElementChild?.classList.remove("visible")
 
-    parent.classList.add("chosenTime")
+    //parent.classList.add("chosenTime")
 
     if(parent.firstChild !== null){
       let temp = parent.firstChild as HTMLButtonElement
-      temp.classList.remove("whiteHover")
-      this.tripTimes[index] = fromTo
+      //temp.classList.remove("whiteHover")
+      this.tripTimes[0][index] = fromTo
       this.tripTimeCalc()
+      this.addedStations[0][i].chosen = i2
     }
 
     let nextSib = parent.nextElementSibling
     while(nextSib !== null){
-      nextSib.classList.add("displayNone")
+      //nextSib.classList.add("displayNone")
       nextSib = nextSib.nextElementSibling
     }
     let prevSib = parent.previousElementSibling
     while(prevSib !== null){
-      prevSib.classList.add("displayNone")
+      //prevSib.classList.add("displayNone")
       prevSib = prevSib.previousElementSibling
     }
   }
 
   tripTimeCalc(){
-    while(this.tripTimes.length > this.tripTimesMS.length)
-      this.tripTimesMS.push(null)
-    while(this.tripTimes.length < this.tripTimesMS.length)
-      this.tripTimesMS.pop()
+    while(this.tripTimes[0].length > this.tripTimesMS[0].length)
+      this.tripTimesMS[0].push(null)
+    while(this.tripTimes[0].length < this.tripTimesMS[0].length)
+      this.tripTimesMS[0].pop()
 
-    if(this.tripTimes[0]){
+    if(this.tripTimes[0][0]){
 
       let now = Date.now()
-      let ms = this.tripTimes[0]!.from.getTime() - now
+      let ms = this.tripTimes[0][0]!.from.getTime() - now
       if(ms < 0){
-        this.tripTimesMSFirst = of(-1)
+        this.tripTimesMSFirst[0] = of(-999)
       }
       else
-        this.tripTimesMSFirst = timer(0, 1000).pipe(
+        this.tripTimesMSFirst[0] = timer(0, 1000).pipe(
           map(n => (ms/1000 - n) * 1000),
           takeWhile(n => n >= -1001),
         );
     }
-    for (let index = 0; index + 1 < this.tripTimes.length; index++) {
-      if(this.tripTimes[index] && this.tripTimes[index + 1]){
-        let start = this.tripTimes[index]!.to
-        let end = this.tripTimes[index + 1]!.from
+    for (let index = 0; index + 1 < this.tripTimes[0].length; index++) {
+      if(this.tripTimes[0][index] && this.tripTimes[0][index + 1]){
+        let start = this.tripTimes[0][index]!.to
+        let end = this.tripTimes[0][index + 1]!.from
 
 
         if(start){
-          this.tripTimesMS[index + 1] = end.getTime() - start.getTime()
+          this.tripTimesMS[0][index + 1] = end.getTime() - start.getTime()
         }
       }
       else{
-        this.tripTimesMS[index + 1] = null
+        this.tripTimesMS[0][index + 1] = null
       }
     }
+    if(this.addedStations.length > 0)
+      if(this.tripTimes[0][0] && this.tripTimes[0][this.addedStations[0].length - 1]){
+        this.tripTimesStartToEnd[0] = this.tripTimes[0][this.addedStations[0].length - 1]!.to!.getTime() - this.tripTimes[0][0].from.getTime()
+      }
+
   }
 
   tripTimeCalcFromDelete(index: number){
-    this.tripTimes.splice(index, 1)
+    this.tripTimes[0].splice(index, 1)
     this.tripTimeCalc()
   }
   tripTimeCalcNull(index: number){
-    this.tripTimes[index] = null
+    this.tripTimes[0][index] = null
     this.tripTimeCalc()
   }
 
@@ -685,8 +890,8 @@ export class TravelComponent implements OnInit{
     let id = startStation.siteID + endStation.siteID + index
 
 
-    this.addedStations[index].one = endStation
-    this.addedStations[index].two = startStation
+    this.addedStations[0][index].one = endStation
+    this.addedStations[0][index].two = startStation
 
     
     let listUL = (document.getElementById(id + "ul") as HTMLUListElement)
@@ -700,33 +905,84 @@ export class TravelComponent implements OnInit{
   }
 
   deleteStations(index:number){
+    this.addedStations[0].splice(index, 1)
+  }
+  
+  saveRoute(){
+    this.addRoute()
+    
+  }
+
+  getRoute(index: number){
+
+    
+    
+    let tempAS = this.addedStations[index]
+    let tempTT = this.tripTimes[index]
+    let tempTTMS = this.tripTimesMS[index]
+    let tempTTMSF = this.tripTimesMSFirst[index]
+    let tempTTSTE = this.tripTimesStartToEnd[index]
+
     this.addedStations.splice(index, 1)
+    this.tripTimes.splice(index, 1)
+    this.tripTimesMS.splice(index, 1)
+    this.tripTimesMSFirst.splice(index, 1)
+    this.tripTimesStartToEnd.splice(index, 1)
+    
+    this.addedStations.unshift(tempAS)
+    this.tripTimes.unshift(tempTT)
+    this.tripTimesMS.unshift(tempTTMS)
+    this.tripTimesMSFirst.unshift(tempTTMSF)
+    this.tripTimesStartToEnd.unshift(tempTTSTE)
+
   }
 
-  getRoute(){
-    let url = []
-    url.push(window.location.href.split('?')[0] + "?")
-    this.addedStations.forEach((sp: StationPair) =>{
-      console.log(sp.one.siteID, sp.two.siteID)
-      url.push("station=" + sp.one.siteID + "&" + "name=" + sp.one.name + "&" + "station=" + sp.two.siteID + "&" + "name=" + sp.two.name + "&")
-    })
-
-    console.log(url)
-    let urlString = url.join("")
-    navigator.clipboard.writeText(urlString);
-
-    // Alert the copied text
-    alert("Copied the text: " + urlString);
+  addRoute(){
+    this.addedStations.push([])
+    this.tripTimes.push([])
+    this.tripTimesMS.push([])
+    this.tripTimesMSFirst.push(new Observable)
+    this.tripTimesStartToEnd.push(null)
   }
+
+  showRoutes(){
+
+    let button = document.getElementById("routes_menu")
+
+    if(button === null)
+      return
+
+    let con = document.getElementsByClassName("routesContainer")[0]
+
+    if(button.innerText === "Show Routes"){
+      button.innerText = "Hide Routes"
+      con.classList.add("visible")
+    }
+    else{
+      button.innerText = "Show Routes"
+      con.classList.remove("visible")
+    }
+
+
+  }
+
+  
+
+  previousTouch: Touch | null = null
 
   addedEventListeners: string[] = []
 
-  tripTimesMSFirst?: Observable<number>
-  tripTimesMS: (number | null)[] = []
-  tripTimes: ({from: Date, to:Date | null} | null)[] = []
+  tripTimesMSFirst: Array<Observable<number>> = []
+  tripTimesMS: Array<Array<(number | null)>> = [[]]
+  tripTimes: Array<Array<({from: Date, to:Date | null} | null)>> = [[]]
+  tripTimesStartToEnd: Array<number | null> = []
 
-  addedStations: Array<StationPair> = []
+  addedStations: Array<Array<StationPair>> = [[]]
   stationPair: StationPairNull = {one: null,two: null}
+
+  private StationsReal: {[station: string]:Departures} = {}
+  private StationsRealTime: {[station: string]:number} = {}
+  private lastCallRealTime: {[station: string]:number} = {}
 
   stationTimes: {diffTime: number,
     journeyNumber: number,

@@ -41,6 +41,10 @@
     display: none;
 }
 
+.displayBlock{
+    display: block;
+}
+
 .invisible{
     visibility: hidden;
 }
@@ -68,6 +72,10 @@ button{
     cursor: pointer;
 }
 
+.noneClick{
+    cursor:default;
+}
+
 .roundedBottom{
     border-bottom-right-radius: .5rem;
     border-bottom-left-radius: .5rem;
@@ -76,6 +84,12 @@ button{
 .roundedTop{
     border-top-right-radius: .5rem;
     border-top-left-radius: .5rem;
+}
+
+.verticalDivide{
+    height: 100%;
+    max-width: 1px;
+    flex: 1 0 1px;
 }
 
 body{
@@ -90,3 +104,4 @@ html, body {
 }
 
 * {box-sizing:border-box;}
+

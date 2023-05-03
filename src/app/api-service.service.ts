@@ -4,17 +4,22 @@ import { Observable, ObservableInput, firstValueFrom, of, throwError } from 'rxj
 import { catchError, retry, timeout } from 'rxjs/operators';
 import { ResponseWrapper } from './responseWrapper';
 import { Departures } from './departures';
+import { isDevMode } from '@angular/core';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiServiceService {
 
-  private realkey = "cea6074a2f0248a3b466aae7a88af063"
-  private namekey = "968f31ed688a44bcbb24bafd5fc5a40b"
+  public hasCORS = false
+
+  private realkey = ""
+  private namekey = ""
   private URLStationReal = "https://api.sl.se/api2/realtimedeparturesv4.json?key=" + this.realkey
   private URLStationName = "https://api.sl.se/api2/typeahead.json?key=" + this.namekey
 
+  private URLStationRealSafe = "http://90.230.66.36:7001/stationreal?key=" + this.realkey
+  private URLStationNameSafe = "http://90.230.66.36:7001/stationname?key=" + this.namekey
 
   httpOptions = {
     headers: new HttpHeaders({
@@ -30,22 +35,37 @@ export class ApiServiceService {
 
   getStationName(station: string): Observable<JSON>{
 
+    if(this.hasCORS){
       let ret = this.http.get<JSON>(`${this.URLStationName}&searchstring=${station}&stationsonly=true`, this.httpOptions).pipe(
         catchError(this.handleError.bind(this))
       );
-
+  
       return ret
+    }
+
+    let ret = this.http.get<JSON>(`${this.URLStationNameSafe}&station=${station}`, this.httpOptions).pipe(
+      catchError(this.handleError.bind(this))
+    );
+
+    return ret
 
   }
 
   getStationReal(station: string, time: string): Observable<JSON>{
 
-      
-    
+    if(this.hasCORS){
       let ret = this.http.get<JSON>(`${this.URLStationReal}&siteid=${station}&timewindow=${time}`, this.httpOptions).pipe(
         catchError(this.handleError.bind(this))
       )
       return ret
+    }
+      
+    let ret = this.http.get<JSON>(`${this.URLStationRealSafe}&siteid=${station}&timewindow=${time}`, this.httpOptions).pipe(
+      catchError(this.handleError.bind(this))
+    )
+    return ret
+    
+      
   }
 
 

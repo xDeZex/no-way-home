@@ -25,17 +25,25 @@
                 </ul>
             </div>
             
-            <button class="roundedBottom roundedTop whiteHover saveURL" (click)="getRoutesURL()">Save URL of Route</button>
+            <button class="roundedBottom roundedTop whiteHover saveURL" (click)="getRoutesURL()">Save URL of Routes</button>
             <button class="roundedBottom roundedTop whiteHover routes_menu" (click)="showRoutes()" id="routes_menu">Show Routes</button>
 
         </div>
         <div class="routesContainer">
+            <div class="routes_sortContainer">
+                <label>Sort By:</label>
+                <button class="routes_sort roundedBottom roundedTop" (click)="sortRoutes('Arrival')">Arrival</button>
+                <button class="routes_sort roundedBottom roundedTop" (click)="sortRoutes('Time')">Time</button>
+            </div>
             <button *ngFor="let list of addedStations; let i = index" class="routes roundedBottom roundedTop centerText" [class.whiteHover]="i !== 0" [class.noneClick]="i === 0" [disabled]="i === 0" (click)="getRoute(i); tripTimeCalc()">
+                <button class="whiteHover routes_delete" *ngIf="i === 0" (click)="deleteRoute()">
+                    X   
+                </button>
             
                 <div *ngIf="list.length > 0">
                     <p>{{list[0].one.name}}</p>
                     <div class="routes_mode">
-                        <span>
+                        <span [class.used]="(tripTimesMSFirst[i] | async)! !== null">
                             <ng-container *ngIf="(tripTimesMSFirst[i] | async)! !== null">
                                 <span>{{(tripTimesMSFirst[i] | async)! > 0 ? (tripTimesMSFirst[i] | async | date:'mm:ss') : "Missed"}}</span>
                             </ng-container>
@@ -52,7 +60,8 @@
                                 </ng-container>
                             </ng-container>
                         </span>
-                        <span>
+                        
+                        <span [class.used]="tripTimesStartToEnd[i]! > 0">
                             <ng-container *ngIf="tripTimesStartToEnd[i]">
                                 <ng-container *ngIf="tripTimesStartToEnd[i]! > 0">
                                     

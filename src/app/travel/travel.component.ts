@@ -7,7 +7,6 @@ import { Departure, Departures } from '../departures';
 import { Observable, map, of, takeWhile, timer } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { SavedDeparture } from "../saved-departure";
-import * as CryptoJS from 'crypto-js';
 
 @Component({
   selector: 'app-travel',
@@ -174,26 +173,8 @@ export class TravelComponent implements OnInit{
   }
 
   updateTraffic(startStation: Station, endStation: Station){
-    if(this.lastCallRealTime[startStation.siteID] !== undefined){
-      if(this.lastCallRealTime[startStation.siteID] < Date.now() - 500){
-        this.getStationReal(startStation, "60")
-        this.lastCallRealTime[startStation.siteID] = Date.now()
-      }
-    } 
-    else{
-      this.getStationReal(startStation, "60")
-      this.lastCallRealTime[startStation.siteID] = Date.now()
-    }
-    if(this.lastCallRealTime[endStation.siteID] !== undefined){
-      if(this.lastCallRealTime[endStation.siteID] < Date.now() - 500){
-        this.getStationReal(endStation, "60")
-        this.lastCallRealTime[endStation.siteID] = Date.now()
-      }
-    }
-    else{
-      this.getStationReal(endStation, "60")
-      this.lastCallRealTime[endStation.siteID] = Date.now()
-    }
+    this.getStationReal(startStation, "60")
+    this.getStationReal(endStation, "60")
   }
 
   getTraffic(startStation: Station, endStation: Station){
@@ -250,6 +231,9 @@ export class TravelComponent implements OnInit{
 
     
     if(e === null)
+      return
+
+    if(e.firstElementChild?.classList.contains("chosenTime") || e.firstElementChild?.classList.contains("displayNone"))
       return
 
     let scroll = e.scrollTop
@@ -695,13 +679,15 @@ export class TravelComponent implements OnInit{
   }
 
   getStationReal(station: Station, time: string): void{
+
     if(this.StationsReal[station.siteID] !== undefined && this.StationsRealTime[station.siteID] !== undefined){
-      if(this.StationsRealTime[station.siteID] > Date.now() - 120000/2){
+      if(this.StationsRealTime[station.siteID] > Date.now() - 120000/20 && this.StationsReal[station.siteID].Message === ""){
         station.dep = this.StationsReal[station.siteID]
+        console.log("not")
         return
       }
     }
-
+    console.log("send")
     let ret = this.api.getStationReal(station.siteID, time)
 
     if(!ret){
@@ -854,6 +840,9 @@ export class TravelComponent implements OnInit{
           takeWhile(n => n >= -1001),
         );
     }
+    else{
+      this.tripTimesMSFirst[0] = new Observable
+    }
     for (let index = 0; index + 1 < this.tripTimes[0].length; index++) {
       if(this.tripTimes[0][index] && this.tripTimes[0][index + 1]){
         let start = this.tripTimes[0][index]!.to
@@ -868,9 +857,11 @@ export class TravelComponent implements OnInit{
         this.tripTimesMS[0][index + 1] = null
       }
     }
+    this.tripTimesStartToEnd[0]= null
     if(this.addedStations.length > 0)
       if(this.tripTimes[0][0] && this.tripTimes[0][this.addedStations[0].length - 1]){
-        this.tripTimesStartToEnd[0] = this.tripTimes[0][this.addedStations[0].length - 1]!.to!.getTime() - this.tripTimes[0][0].from.getTime()
+        if(this.tripTimes[0][this.addedStations[0].length - 1]!.to)
+          this.tripTimesStartToEnd[0] = this.tripTimes[0][this.addedStations[0].length - 1]!.to!.getTime() - this.tripTimes[0][0].from.getTime()
       }
 
   }
@@ -943,6 +934,61 @@ export class TravelComponent implements OnInit{
     this.tripTimesMS.push([])
     this.tripTimesMSFirst.push(new Observable)
     this.tripTimesStartToEnd.push(null)
+  }
+
+  deleteRoute(){
+    this.addedStations.shift()
+    this.tripTimes.shift()
+    this.tripTimesMS.shift()
+    this.tripTimesMSFirst.shift()
+    this.tripTimesStartToEnd.shift()
+  }
+
+  sortRoutes(value: string){
+    
+    for (let i = 0; i < this.addedStations.length; i++) {
+      let tempI = i
+      let compAlt = undefined
+      let comp = this.tripTimesStartToEnd[i]
+      if(value === "Arrival"){
+        compAlt = this.tripTimes[i].at(-1)?.to?.getTime()
+        if(compAlt !== undefined && this.tripTimes[i].length === this.addedStations[i].length)
+          comp = compAlt
+        else
+          comp = null
+      }
+      if(comp === null)
+        comp = Number.MAX_SAFE_INTEGER
+      
+      for(let j = i - 1; j >= 0; j--){
+        let prevCompAlt = undefined
+        let prevComp = this.tripTimesStartToEnd[j]
+        if(value === "Arrival"){
+          prevCompAlt = this.tripTimes[j].at(-1)?.to?.getTime()
+          if(prevCompAlt !== undefined)
+            prevComp = prevCompAlt
+          else
+            prevComp = null
+        }
+        
+        if(prevComp === null)
+          prevComp = Number.MAX_SAFE_INTEGER
+        if(comp < prevComp){
+          this.switchRoutes(tempI, j)
+          tempI = j
+        }
+        else
+          break
+      }
+    }
+  }
+
+  switchRoutes(indexFirst: number, indexSecond: number){
+    [this.addedStations[indexFirst], this.addedStations[indexSecond]] = [this.addedStations[indexSecond], this.addedStations[indexFirst]];
+    [this.tripTimes[indexFirst], this.tripTimes[indexSecond]] = [this.tripTimes[indexSecond], this.tripTimes[indexFirst]];
+    [this.tripTimesMS[indexFirst], this.tripTimesMS[indexSecond]] = [this.tripTimesMS[indexSecond], this.tripTimesMS[indexFirst]];
+    [this.tripTimesMSFirst[indexFirst], this.tripTimesMSFirst[indexSecond]] = [this.tripTimesMSFirst[indexSecond], this.tripTimesMSFirst[indexFirst]];
+    [this.tripTimesStartToEnd[indexFirst], this.tripTimesStartToEnd[indexSecond]] = [this.tripTimesStartToEnd[indexSecond], this.tripTimesStartToEnd[indexFirst]];
   }
 
   showRoutes(){

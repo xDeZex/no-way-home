@@ -18,8 +18,8 @@ export class ApiServiceService {
   private URLStationReal = "https://api.sl.se/api2/realtimedeparturesv4.json?key=" + this.realkey
   private URLStationName = "https://api.sl.se/api2/typeahead.json?key=" + this.namekey
 
-  private URLStationRealSafe = "http://90.230.66.36:7001/stationreal?key=" + this.realkey
-  private URLStationNameSafe = "http://90.230.66.36:7001/stationname?key=" + this.namekey
+  private URLStationRealSafe = "https://xdezex.duckdns.org:7001/stationreal?key=" + this.realkey
+  private URLStationNameSafe = "https://xdezex.duckdns.org:7001/stationname?key=" + this.namekey
 
   httpOptions = {
     headers: new HttpHeaders({

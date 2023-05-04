@@ -681,13 +681,11 @@ export class TravelComponent implements OnInit{
   getStationReal(station: Station, time: string): void{
 
     if(this.StationsReal[station.siteID] !== undefined && this.StationsRealTime[station.siteID] !== undefined){
-      if(this.StationsRealTime[station.siteID] > Date.now() - 120000/20 && this.StationsReal[station.siteID].Message === ""){
+      if(this.StationsRealTime[station.siteID] > Date.now() - 120000/2 && this.StationsReal[station.siteID].Message === ""){
         station.dep = this.StationsReal[station.siteID]
-        console.log("not")
         return
       }
     }
-    console.log("send")
     let ret = this.api.getStationReal(station.siteID, time)
 
     if(!ret){

@@ -836,7 +836,7 @@ input:-webkit-autofill:focus{
 @media only screen and (max-width: 1130px) {
     .travel{
         border-radius: 0.5rem;
-        background: #000;
+        min-height: 100vh;
     }
     .gridContainer{
     }
@@ -863,6 +863,9 @@ input:-webkit-autofill:focus{
     }
 }
 @media only screen and (max-width: 680px) {
+    .travel{
+        background: #000;
+    }
     .routes_menu{
         display: block;
     }

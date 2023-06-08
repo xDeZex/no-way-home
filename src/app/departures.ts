@@ -73,6 +73,28 @@ export class Departures {
         return ""
 
     }
+
+    hasDepartures(mode: string): boolean{
+      switch (mode) {
+        case "buses":
+          return this.Buses.length > 0
+          
+        case "trams":
+          return this.Trams.length > 0
+          
+        case "trains":
+          return this.Trains.length > 0
+          
+        case "metro":
+          return this.Metros.length > 0
+          
+        case "ships":
+          return this.Ships.length > 0
+          
+        default:
+          return false
+      }
+    }
 }
 
 export class Departure{

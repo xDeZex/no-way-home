@@ -229,7 +229,6 @@ export class TravelComponent implements OnInit{
 
     let e = document.getElementById(id)
 
-    
     if(e === null)
       return
 
@@ -255,14 +254,16 @@ export class TravelComponent implements OnInit{
       scroll += length
       scrollSaved += lengthSaved
     }
-    e.scroll({
-      top: scroll,
-      left: 0,
-    });
+    if(!(e!.scrollHeight - 144 - 44 <= e!.scrollTop && event.deltaY >= 0)){
+      e.scroll({
+        top: scroll,
+        left: 0,
+      });
+    }
     
     let totalScroll = e.scrollHeight - e.offsetHeight
     if(e.childElementCount > 3){
-      if(totalScroll <= scrollSaved){
+      if(totalScroll - 1 <= scrollSaved){
         e.parentElement?.lastElementChild?.classList.remove("visible")
       }
       else{
@@ -1036,7 +1037,6 @@ export class TravelComponent implements OnInit{
 
   stations = []
   station: string = ""
-  key = "cea6074a2f0248a3b466aae7a88af063"
 
   queryStation: string[] = []
   queryStationName: string[] = []

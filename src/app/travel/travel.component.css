@@ -576,6 +576,10 @@ input:-webkit-autofill:focus{
     padding-right: 1rem;
 }
 
+:host ::ng-deep .options_button_text{
+    font-size: 13px;
+    line-height: 13px;
+}
 
 :host ::ng-deep .options_button_button{
     visibility: hidden;
@@ -679,7 +683,7 @@ input:-webkit-autofill:focus{
 }
 
 :host ::ng-deep .addedStations_options{
-    max-height: 9rem;
+    max-height: 144px;
     overflow-y: auto;
     scroll-snap-type: y mandatory;
     scroll-snap-stop: always;

@@ -32,8 +32,8 @@
         <div class="routesContainer">
             <div class="routes_sortContainer">
                 <label>Sort By:</label>
-                <button class="routes_sort roundedBottom roundedTop" (click)="sortRoutes('Arrival')">Arrival</button>
-                <button class="routes_sort roundedBottom roundedTop" (click)="sortRoutes('Time')">Time</button>
+                <button class="routes_sort roundedBottom roundedTop whiteHover" (click)="sortRoutes('Arrival')">Arrival</button>
+                <button class="routes_sort roundedBottom roundedTop whiteHover" (click)="sortRoutes('Time')">Time</button>
             </div>
             <button *ngFor="let list of addedStations; let i = index" class="routes roundedBottom roundedTop centerText" [class.whiteHover]="i !== 0" [class.noneClick]="i === 0" [disabled]="i === 0" (click)="getRoute(i); tripTimeCalc()">
                 <button class="whiteHover routes_delete" *ngIf="i === 0" (click)="deleteRoute()">
@@ -164,18 +164,17 @@
                             <button class="order_right whiteHover" (click)="moveStationPair(i, 1);"><span class="arrow"></span></button>
                         </div>
                     </div>
-                    
                     <select id="{{pair.one.siteID}}{{pair.two.siteID}}{{i}}" (change)="getMatchingTraffic(pair, i)" class="addedStations_select">
                         <ng-container *ngIf="pair.savedDepartures.length=== 0">
                             <option value="Choose Mode" selected disabled hidden class="greyText">Choose Mode</option>    
-                            <option>buses</option>
-                            <option>trains</option>
-                            <option>trams</option>
-                            <option>metros</option>
-                            <option>ships</option>
+                            <option *ngIf="pair.one.dep?.hasDepartures('buses') && pair.two.dep?.hasDepartures('buses')">buses</option>
+                            <option *ngIf="pair.one.dep?.hasDepartures('trains') && pair.two.dep?.hasDepartures('trains')">trains</option>
+                            <option *ngIf="pair.one.dep?.hasDepartures('trams') && pair.two.dep?.hasDepartures('trams')">trams</option>
+                            <option *ngIf="pair.one.dep?.hasDepartures('metro') && pair.two.dep?.hasDepartures('metro')">metros</option>
+                            <option *ngIf="pair.one.dep?.hasDepartures('ships') && pair.two.dep?.hasDepartures('ships')">ships</option>
                         </ng-container>
                         <ng-container *ngIf="pair.savedDepartures.length !== 0">
-                            <option value="Choose Mode" selected disabled hidden class="greyText">Choose Mode</option>  
+                            <option value="Choose Mode" selected disabled hidden class="greyText">Choose Mode!</option>  
                             <option [selected]="pair.savedDepartures[0].mode.includes('buses')">buses</option>
                             <option [selected]="pair.savedDepartures[0].mode.includes('trains')">trains</option>
                             <option [selected]="pair.savedDepartures[0].mode.includes('trams')">trams</option>

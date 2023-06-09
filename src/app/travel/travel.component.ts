@@ -928,11 +928,13 @@ export class TravelComponent implements OnInit{
   }
 
   addRoute(){
-    this.addedStations.push([])
+    let i = this.addedStations.push([]) - 1
     this.tripTimes.push([])
     this.tripTimesMS.push([])
     this.tripTimesMSFirst.push(new Observable)
     this.tripTimesStartToEnd.push(null)
+
+    this.getRoute(i)
   }
 
   deleteRoute(){

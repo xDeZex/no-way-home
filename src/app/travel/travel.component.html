@@ -175,11 +175,26 @@
                         </ng-container>
                         <ng-container *ngIf="pair.savedDepartures.length !== 0">
                             <option value="Choose Mode" selected disabled hidden class="greyText">Choose Mode!</option>  
-                            <option [selected]="pair.savedDepartures[0].mode.includes('buses')">buses</option>
-                            <option [selected]="pair.savedDepartures[0].mode.includes('trains')">trains</option>
-                            <option [selected]="pair.savedDepartures[0].mode.includes('trams')">trams</option>
-                            <option [selected]="pair.savedDepartures[0].mode.includes('metros')">metros</option>
-                            <option [selected]="pair.savedDepartures[0].mode.includes('ships')">ships</option>
+                            <option 
+                                [selected]="pair.savedDepartures[0].mode.includes('buses')" 
+                                *ngIf="pair.one.dep?.hasDepartures('buses') && pair.two.dep?.hasDepartures('buses')"
+                                >buses</option>
+                            <option 
+                                [selected]="pair.savedDepartures[0].mode.includes('trains')" 
+                                *ngIf="pair.one.dep?.hasDepartures('trains') && pair.two.dep?.hasDepartures('trains')"
+                                >trains</option>
+                            <option 
+                                [selected]="pair.savedDepartures[0].mode.includes('trams')" 
+                                *ngIf="pair.one.dep?.hasDepartures('trams') && pair.two.dep?.hasDepartures('trams')"
+                                >trams</option>
+                            <option 
+                                [selected]="pair.savedDepartures[0].mode.includes('metros')" 
+                                *ngIf="pair.one.dep?.hasDepartures('metro') && pair.two.dep?.hasDepartures('metro')"
+                                >metros</option>
+                            <option 
+                                [selected]="pair.savedDepartures[0].mode.includes('ships')" 
+                                *ngIf="pair.one.dep?.hasDepartures('ships') && pair.two.dep?.hasDepartures('ships')"
+                                >ships</option>
                         </ng-container>
                     </select>    
                     <ul class="addedStations_optionsContainer">

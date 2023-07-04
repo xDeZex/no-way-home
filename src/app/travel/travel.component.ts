@@ -60,7 +60,6 @@ export class TravelComponent implements OnInit{
                 }
                 if(index !== params["routes"].length - 1){
                   this.saveRoute()
-                  this.getRoute(index + 1)
                 }
             }
           }
@@ -73,7 +72,7 @@ export class TravelComponent implements OnInit{
           
           
         } catch (error) {
-          console.error("The URL was malformed")
+          console.error("The URL was malformed or had no routes")
         }
         
       }

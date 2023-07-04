@@ -73,7 +73,7 @@ export class ApiServiceService {
     // Return an observable with a user-facing error message.
     let message = error.message
     if(message.includes("0 Unknown Error")){
-      message = "You probably need to enable CORS with an extension"
+      message = "There was an error"
     }
 
     return of(({error: message} as any as JSON))

@@ -20,7 +20,7 @@
             <div class="stationList">
                 <ul>
                     <li *ngFor="let station of stations;index as i">
-                        <button class="whiteHover" (click)="addStation(i)">{{station["Name"]}}</button>
+                        <button class="whiteHover" (click)="addStation(i)">{{station["name"]}}</button>
                     </li>
                 </ul>
             </div>
@@ -211,7 +211,7 @@
                                     <span class="options_button_warning" [class.visible]="dep.deviations.length > 0" [class.warning-red]="dep.deviationsImportance === 7" [class.warning-yellow]="dep.deviationsImportance < 7">⚠</span>
                                     <span class="options_button_warning_text roundedBottom roundedTop">
                                         <p *ngFor="let dev of dep.deviations">
-                                            {{dev.Text}}
+                                            {{dev.message}}
                                         </p>
                                     </span>
                                     <span class="options_button_text">{{dep.fromText}}</span>

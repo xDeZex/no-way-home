@@ -98,62 +98,96 @@ export class Departures {
 }
 
 export class Departure{
-    TransportMode: string
-    LineNumber: string
-    Destination: string
-    JourneyDirection: number
-    GroupOfLine: string
-    StopAreaName: string
-    StopAreaNumber: number
-    StopPointNumber: number
-    StopPointDesignation: string
-    TimeTabledDateTime: Date
-    ExpectedDateTime?: Date
-    DisplayTime: string
-    JourneyNumber: number
-    Deviations: Array<{ Consequence: string; ImportanceLevel: number; Text: string }>
-    SecondaryDestinationName: string
-    PredictionState: string
+    direction: string
+    direction_code: number
+    via: string
+    destination: string
+    state: string
+    schedule: string
+    expected: string
+    journey: {
+        id: number
+        state: string
+        prediction_state: string
+        passenger_level: number
+    }
+    stop_area: {
+        id: number
+        name: string
+        designation: string
+    }
+    line: {
+        id: number
+        designation: string
+        transport_mode: string
+        group_of_lines: string
+    }
+    deviations: Deviation[]
 
     constructor(
-        TransportMode: string,
-        LineNumber: string,
-        Destination: string,
-        JourneyDirection: number,
-        GroupOfLine: string,
-        StopAreaName: string,
-        StopAreaNumber: number,
-        StopPointNumber: number,
-        StopPointDesignation: string,
-        TimeTabledDateTime: Date,
-        ExpectedDateTime: Date,
-        DisplayTime: string,
-        JourneyNumber: number,
-        Deviations: Array<{ Consequence: string; ImportanceLevel: number; Text: string }>,
-        SecondaryDestinationName: string,
-        PredictionState: string
+        direction: string,
+        direction_code: number,
+        via: string,
+        destination: string,
+        state: string,
+        schedule: string,
+        expected: string,
+        journey: {
+            id: number
+            state: string
+            prediction_state: string
+            passenger_level: number
+        },
+        stop_area: {
+            id: number
+            name: string
+            designation: string
+        },
+        line: {
+            id: number
+            designation: string
+            transport_mode: string
+            group_of_lines: string
+        },
+        deviations: {
+            importance_level: number
+            consequence: string
+            message: string
+        }[]
     ) {
-        this.TransportMode = TransportMode
-        this.LineNumber = LineNumber
-        this.Destination = Destination
-        this.JourneyDirection = JourneyDirection
-        this.GroupOfLine = GroupOfLine
-        this.StopAreaName = StopAreaName
-        this.StopAreaNumber = StopAreaNumber
-        this.StopPointNumber = StopPointNumber
-        this.StopPointDesignation = StopPointDesignation
-        this.TimeTabledDateTime = TimeTabledDateTime
-        this.ExpectedDateTime = ExpectedDateTime
-        this.DisplayTime = DisplayTime
-        this.JourneyNumber = JourneyNumber
-        this.Deviations = Deviations
-        this.SecondaryDestinationName = SecondaryDestinationName
-        this.PredictionState = PredictionState
+        this.direction = direction
+        this.direction_code = direction_code
+        this.via = via
+        this.destination = destination
+        this.state = state
+        this.schedule = schedule
+        this.expected = expected
+        this.journey = journey
+        this.stop_area = stop_area
+        this.line = line
+        this.deviations = deviations
     }
 
     public Compare(dep: Departure): boolean{
-        if (dep.JourneyNumber === this.JourneyNumber)
+        if (dep.journey.id === this.journey.id)
             return true
         return false
+    }
+
+    public GetDepartureTime(): string{
+        if (this.expected === "")
+            return this.schedule
+        return this.expected
+    }
+}
+
+export class Deviation{
+    importance_level: number
+    consequence: string
+    message: string
+    constructor(importance_level: number, consequence: string, message: string){
+        this.importance_level = importance_level
+        this.consequence = consequence
+        this.message = message
     }
 }

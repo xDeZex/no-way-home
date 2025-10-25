@@ -3,7 +3,7 @@ import { ApiServiceService } from '../api-service.service';
 import { Station } from '../station';
 import { StationPair } from '../stationPair';
 import { StationPairNull } from '../stationPairNull';
-import { Departure, Departures } from '../departures';
+import { Departure, Departures, Deviation } from '../departures';
 import { Observable, map, of, takeWhile, timer } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { SavedDeparture } from "../saved-departure";
@@ -18,6 +18,7 @@ export class TravelComponent implements OnInit{
 
   constructor(private api: ApiServiceService, private route: ActivatedRoute){}
 
+  stations: Station[] = []
 
   preventDefault(e:Event) {    
     e.preventDefault();
@@ -33,7 +34,7 @@ export class TravelComponent implements OnInit{
             json = params["json"]
           }
           else{
-            console.error("The URL has no json")
+            console.info("The URL has no json")
             throw Error
           }
           if(json !== ""){
@@ -65,7 +66,7 @@ export class TravelComponent implements OnInit{
             }
           }
           else{
-            console.error("The URL has no routes")
+            console.info("The URL has no routes")
             throw Error
           }
           
@@ -73,7 +74,7 @@ export class TravelComponent implements OnInit{
           
           
         } catch (error) {
-          console.error("The URL was malformed or had no routes")
+          console.info("The URL was malformed or had no routes")
         }
         
       }
@@ -111,21 +112,14 @@ export class TravelComponent implements OnInit{
   }
 
   getStationName(station: string){
-    let ret = this.api.getStationName(station)
+    let foundStations = this.api.getStationName(station)
   
-    if(!ret){
+    if(foundStations.length === 0){
       console.error("Problem in getStationName")
       return
     }
 
-    ret.subscribe((recJSON: any) => {
-      if(Object.keys(recJSON).includes("ResponseData")){
-        this.stations = recJSON["ResponseData"]
-      }
-      else{
-        console.error(recJSON.error)
-      }
-    })
+    this.stations = foundStations
   }
 
   addStationQuery(siteID: string, name: string){
@@ -153,12 +147,12 @@ export class TravelComponent implements OnInit{
     
     let reg = new RegExp("\\(.*\\)")
     if(this.stationPair.one === null){
-      this.stationPair.one = {name: this.stations[index]["Name"], siteID: this.stations[index]["SiteId"], dep: null}
+      this.stationPair.one = {name: this.stations[index]["name"], siteID: this.stations[index]["siteID"], dep: null}
       this.stationPair.one.name = this.stationPair.one.name.replace(reg, "").trim()
 
     }
     else {
-      this.stationPair.two = {name: this.stations[index]["Name"], siteID: this.stations[index]["SiteId"], dep: null}
+      this.stationPair.two = {name: this.stations[index]["name"], siteID: this.stations[index]["siteID"], dep: null}
       this.stationPair.two.name = this.stationPair.two.name.replace(reg, "").trim()
 
     }
@@ -173,14 +167,13 @@ export class TravelComponent implements OnInit{
   }
 
   updateTraffic(startStation: Station, endStation: Station){
-    this.getStationReal(startStation, "60")
-    this.getStationReal(endStation, "60")
+    this.getStationReal(startStation)
+    this.getStationReal(endStation)
   }
 
   getTraffic(startStation: Station, endStation: Station){
-    this.getStationReal(startStation, "60")
-    this.getStationReal(endStation, "60")
-    
+    this.getStationReal(startStation)
+    this.getStationReal(endStation)
   }
 
 
@@ -191,33 +184,27 @@ export class TravelComponent implements OnInit{
     startDeps.forEach((startDep: Departure) => {
       let added = false
       endDeps.forEach((endDep: Departure) => {
-        if(startDep.JourneyNumber === endDep.JourneyNumber){
-          let startTime = startDep.TimeTabledDateTime
-          if (startDep.ExpectedDateTime !== undefined){
-            startTime = startDep.ExpectedDateTime
-          }
-          let endTime = endDep.TimeTabledDateTime
-          if (endDep.ExpectedDateTime !== undefined){
-            endTime = endDep.ExpectedDateTime
-          }
+        if(startDep.Compare(endDep)){
+          let startTime = startDep.GetDepartureTime()
+          let endTime = endDep.GetDepartureTime()
           if(startTime < endTime){
             let time = new Date(endTime).getTime() - new Date(startTime).getTime() 
 
             this.stationTimes.push({
               diffTime: time,
-              journeyNumber: startDep.JourneyNumber,
-              journeyDirection: startDep.JourneyDirection,
-              lineNumber: startDep.LineNumber,
+              journeyNumber: startDep.journey.id,
+              journeyDirection: startDep.direction_code,
+              lineNumber: startDep.line.designation,
             })
 
             retList.push([startDep, endDep])
-            destinations.push(startDep.Destination)
+            destinations.push(startDep.destination)
             added = true
           }
         }
       })
       if(!added){
-        if(destinations.includes(startDep.Destination)){
+        if(destinations.includes(startDep.destination)){
           retList.push([startDep, null])
         }
       }
@@ -353,7 +340,7 @@ export class TravelComponent implements OnInit{
   clearSelect(pair: StationPair, index:number){
     let startStation = pair.one
     let endStation = pair.two
-    let id = startStation.siteID + endStation.siteID + index
+    let id = this.getIdofStationElement(startStation, endStation, index)
     let listUL = (document.getElementById(id + "ul") as HTMLUListElement)
 
     let temp = listUL.parentElement?.previousElementSibling as HTMLSelectElement
@@ -364,7 +351,7 @@ export class TravelComponent implements OnInit{
 
   clearInd(startStation: Station, endStation: Station, index:number){
 
-    let id = startStation.siteID + endStation.siteID + index + "ul"
+    let id = this.getIdofStationElement(startStation, endStation, index) + "ul"
 
     let e = document.getElementById(id)
 
@@ -430,7 +417,7 @@ export class TravelComponent implements OnInit{
     let endStation = pair.two
 
 
-    let id = startStation.siteID + endStation.siteID + index
+    let id: string = this.getIdofStationElement(startStation, endStation, index)
 
     pair.chosen = undefined
     this.tripTimeCalcNull(index)
@@ -455,7 +442,7 @@ export class TravelComponent implements OnInit{
     let matching = this.matchingTraffic(startStation.dep.getDepartures(mode), endStation.dep.getDepartures(mode))
     this.clearTraffic(startStation, endStation, index)
     this.addedStations[0][index].savedDepartures = []
-    matching.forEach(e => {
+    matching.forEach(departure => {
       
       let depFromText: string = ""
       let depToText: string = ""
@@ -463,27 +450,19 @@ export class TravelComponent implements OnInit{
       let depLine: string = ""
       let depMode: string[] = []
       let depIL: number = 0
-      let depDeviations: Array<{Consequence: string, ImportanceLevel: number, Text: string}> = []
+      let depDeviations: Deviation[] = []
           
 
-      let start = e[0]
-      let end = e[1]
+      let start = departure[0]
+      let end = departure[1]
 
       let startTimeFinal: Date
       let endTimeFinal: Date | null
 
       if(start !== null && end !== null){
-        let startTime = start.TimeTabledDateTime
-        if (start.ExpectedDateTime !== undefined){
-          startTime = start.ExpectedDateTime
-        }
-        let endTime = end.TimeTabledDateTime
-        if (end.ExpectedDateTime !== undefined){
-          endTime = end.ExpectedDateTime
-        }
+        let startTime = new Date(start.GetDepartureTime())
+        let endTime = new Date(end.GetDepartureTime())
 
-        startTime = new Date(startTime)
-        endTime = new Date(endTime)
         let startTimeText = startTime.toLocaleTimeString("se-SE", {hour12: false})
         let endTimeText = endTime.toLocaleTimeString("se-SE", {hour12: false})
 
@@ -494,11 +473,7 @@ export class TravelComponent implements OnInit{
         endTimeFinal = endTime
       }
       else if(start !== null){
-        let startTime = start.TimeTabledDateTime
-        if (start.ExpectedDateTime !== undefined){
-          startTime = start.ExpectedDateTime
-        }
-        startTime = new Date(startTime)
+        let startTime = new Date(start.GetDepartureTime())
         
         let startTimeText = startTime.toLocaleTimeString("se-SE", {hour12: false})
         
@@ -508,10 +483,10 @@ export class TravelComponent implements OnInit{
 
         let sameTripTime = 0
 
-        this.stationTimes.forEach((e) => {
-          if(e.journeyDirection === start?.JourneyDirection)
-            if(e.lineNumber === start.LineNumber)
-              sameTripTime = e.diffTime
+        this.stationTimes.forEach((stationTime) => {
+          if(stationTime.journeyDirection === start?.direction_code)
+            if(stationTime.lineNumber === start.line.designation)
+              sameTripTime = stationTime.diffTime
         })
         endTimeFinal = null
         if(sameTripTime !== 0){
@@ -527,10 +502,10 @@ export class TravelComponent implements OnInit{
       }
 
       if(start !== null){
-        depLine = start.LineNumber
+        depLine = start.line.designation
         //DEP
         if(mode === "buses"){
-          switch (start.GroupOfLine) {
+          switch (start.line.group_of_lines?.toLowerCase()) {
             case null:
               depMode = ["buses"]
               break;
@@ -550,7 +525,7 @@ export class TravelComponent implements OnInit{
           }
         }
         if(mode === "trams"){
-          switch (start.GroupOfLine.toLowerCase()) {
+          switch (start.line.group_of_lines.toLowerCase()) {
             case "tvärbanan":
               depMode = ["trams", "tvarbanan"]
               break;
@@ -573,7 +548,7 @@ export class TravelComponent implements OnInit{
           }
         }
         if(mode === "trains"){
-          switch (start.GroupOfLine.toLowerCase()) {
+          switch (start.line.group_of_lines.toLowerCase()) {
             case "pendeltåg":
               depMode = ["trains", "pendeltag"]
               break;
@@ -584,7 +559,7 @@ export class TravelComponent implements OnInit{
           }
         }
         if(mode === "metros"){
-          switch (start.GroupOfLine.toLowerCase()) {
+          switch (start.line.group_of_lines.toLowerCase()) {
             case "tunnelbanans gröna linje":
               depMode = ["metros", "grona"]
               break;
@@ -610,7 +585,7 @@ export class TravelComponent implements OnInit{
           }
         }
         if(mode === "ships"){
-          switch (start.GroupOfLine.toLowerCase()) {
+          switch (start.line.group_of_lines.toLowerCase()) {
             case "waxholmsbolagets":
               depMode = ["ships", "waxholmsbolagets"]
               break;
@@ -629,17 +604,17 @@ export class TravelComponent implements OnInit{
         
       }
       
-      let deviations: Array<{Consequence: string, ImportanceLevel: number, Text: string}> = []
+      let deviations: Deviation[] = []
       if(start !== null){
-        if (start.Deviations !== null){
-          start.Deviations.forEach((startDev: {Consequence: string, ImportanceLevel: number, Text: string}) => {
+        if (start.deviations !== null){
+          start.deviations.forEach((startDev: Deviation) => {
             deviations.push(startDev)
           })
         }
       }
       if(end !== null){
-        if(end.Deviations !== null){
-          end!.Deviations.forEach((endDev: {Consequence: string, ImportanceLevel: number, Text: string}) => {
+        if(end.deviations !== null){
+          end!.deviations.forEach((endDev: Deviation) => {
             deviations.push(endDev)
           })
         }
@@ -650,13 +625,13 @@ export class TravelComponent implements OnInit{
 
         let il = 0
         let addedDev: string[] = []
-        deviations.forEach((dev: {Consequence: string, ImportanceLevel: number, Text: string}) =>{
-          if(dev.ImportanceLevel > il)
-            il = dev.ImportanceLevel
-          if(!addedDev.includes(dev.Text)){
+        deviations.forEach((dev: Deviation) =>{
+          if(dev.importance_level > il)
+            il = dev.importance_level
+          if(!addedDev.includes(dev.message)){
             let p = (document.createElement("p") as HTMLParagraphElement)
-            p.innerHTML = dev.Text
-            addedDev.push(dev.Text)
+            p.innerHTML = dev.message
+            addedDev.push(dev.message)
             depDeviations.push(dev)
           }
         })
@@ -679,7 +654,7 @@ export class TravelComponent implements OnInit{
     }
   }
 
-  getStationReal(station: Station, time: string): void{
+  async getStationReal(station: Station): Promise<void>{
 
     if(this.StationsReal[station.siteID] !== undefined && this.StationsRealTime[station.siteID] !== undefined){
       if(this.StationsRealTime[station.siteID] > Date.now() - 120000/2 && this.StationsReal[station.siteID].Message === ""){
@@ -687,35 +662,11 @@ export class TravelComponent implements OnInit{
         return
       }
     }
-    let ret = this.api.getStationReal(station.siteID, time)
+    let departures = await this.api.getStationDepartures(station.siteID)
 
-    if(!ret){
-      console.error("Nothing returned travel")
-      return
-    }
-    else{
-
-      this.StationsRealTime[station.siteID] = Date.now()
-      ret.subscribe((recJSON: any) => {
-        let dep: Departures | null = null
-        
-        if(recJSON["error"] !== undefined){
-          console.error(recJSON.error)
-          dep = new Departures(recJSON.error, [], [], [], [], [])
-        }
-        else if(recJSON.StatusCode !== null && recJSON.StatusCode !== 0){
-          console.error(recJSON.Message, recJSON.StatusCode)
-          dep = new Departures(recJSON.Message, [], [], [], [], [])
-        }
-        else{
-          dep = new Departures("", recJSON["ResponseData"]["Buses"], recJSON["ResponseData"]["Metros"], recJSON["ResponseData"]["Trains"], recJSON["ResponseData"]["Trams"], recJSON["ResponseData"]["Ships"])
-        }
-        this.StationsReal[station.siteID] = dep
-        this.StationsRealTime[station.siteID] = Date.now()
-        station.dep = dep
-
-      })
-    }
+    this.StationsReal[station.siteID] = departures
+    this.StationsRealTime[station.siteID] = Date.now()
+    station.dep = departures
 
   }
 
@@ -877,7 +828,7 @@ export class TravelComponent implements OnInit{
   switchStations(startStation: Station, endStation: Station, index:number){
 
     
-    let id = startStation.siteID + endStation.siteID + index
+    let id = this.getIdofStationElement(startStation, endStation, index)
 
 
     this.addedStations[0][index].one = endStation
@@ -1013,6 +964,10 @@ export class TravelComponent implements OnInit{
 
   }
 
+  getIdofStationElement(startStation: Station, endStation: Station, index:number){
+    return `${startStation.siteID}${endStation.siteID}${index}`
+  }
+
   
 
   previousTouch: Touch | null = null
@@ -1031,17 +986,19 @@ export class TravelComponent implements OnInit{
   private StationsRealTime: {[station: string]:number} = {}
   private lastCallRealTime: {[station: string]:number} = {}
 
-  stationTimes: {diffTime: number,
+  stationTimes: {
+    diffTime: number,
     journeyNumber: number,
     journeyDirection: number,
     lineNumber: string,
   }[]= []
 
-  stations = []
   station: string = ""
 
   queryStation: string[] = []
   queryStationName: string[] = []
 
   travelModes = ["bus", "metro", "train", "tram", "ship"]
+
+
 }

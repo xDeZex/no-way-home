@@ -3,12 +3,14 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Observable, ObservableInput, firstValueFrom, of, throwError } from 'rxjs';
 import { catchError, retry, timeout } from 'rxjs/operators';
 import { ResponseWrapper } from './responseWrapper';
-import { Departures } from './departures';
+import { Departure, Departures } from './departures';
 import { isDevMode } from '@angular/core';
+import { Station } from './station';
 
 @Injectable({
   providedIn: 'root'
 })
+
 export class ApiServiceService {
 
   public hasCORS = false
@@ -21,6 +23,11 @@ export class ApiServiceService {
   private URLStationRealSafe = "https://xdezex.duckdns.org:7001/stationreal?key=" + this.realkey
   private URLStationNameSafe = "https://xdezex.duckdns.org:7001/stationname?key=" + this.namekey
 
+  private URLSites = "https://transport.integration.sl.se/v1/sites?expand=false"
+
+
+  private stations: Station[] = []
+
   httpOptions = {
     headers: new HttpHeaders({
     })
@@ -31,41 +38,78 @@ export class ApiServiceService {
 
   constructor(
     private http: HttpClient,
-  ) { }
+  ) { 
+    this.getStations();
+  }
 
-  getStationName(station: string): Observable<JSON>{
-
-    if(this.hasCORS){
-      let ret = this.http.get<JSON>(`${this.URLStationName}&searchstring=${station}&stationsonly=true`, this.httpOptions).pipe(
-        catchError(this.handleError.bind(this))
-      );
-  
-      return ret
-    }
-
-    let ret = this.http.get<JSON>(`${this.URLStationNameSafe}&station=${station}`, this.httpOptions).pipe(
+  getStations(): void{
+    let ret = this.http.get<JSON>(`${this.URLSites}`, this.httpOptions).pipe(
       catchError(this.handleError.bind(this))
     );
 
-    return ret
-
+    ret.subscribe((stations: any) => {
+      stations.forEach((stations: any) => {
+        this.stations.push({name: stations["name"], siteID: stations["id"], dep: null})
+      })
+    })
   }
 
-  getStationReal(station: string, time: string): Observable<JSON>{
+  getStationName(station: string): Station[]{
+    let found = this.stations.filter((s: Station) => s.name.toLowerCase().includes(station.toLowerCase()))
 
-    if(this.hasCORS){
-      let ret = this.http.get<JSON>(`${this.URLStationReal}&siteid=${station}&timewindow=${time}`, this.httpOptions).pipe(
-        catchError(this.handleError.bind(this))
-      )
-      return ret
-    }
-      
-    let ret = this.http.get<JSON>(`${this.URLStationRealSafe}&siteid=${station}&timewindow=${time}`, this.httpOptions).pipe(
+    return found
+  }
+
+  async getStationDepartures(station: string): Promise<Departures>{
+
+
+    let ret = this.http.get<JSON>(`https://transport.integration.sl.se/v1/sites/${station}/departures`, this.httpOptions).pipe(
       catchError(this.handleError.bind(this))
     )
-    return ret
-    
-      
+    let returnDepartures = new Departures("", [], [], [], [], [])
+
+    try {
+        const departures: any = await firstValueFrom(ret)
+        departures["departures"].forEach((dep: any) => {
+            const departure = new Departure(
+                dep.direction,
+                dep.direction_code,
+                dep.via,
+                dep.destination,
+                dep.state,
+                dep.scheduled,
+                dep.expected,
+                dep.journey,
+                dep.stop_area,
+                dep.line,
+                dep.deviations || []
+            )
+
+            switch (departure.line.transport_mode) {
+                case "BUS":
+                    returnDepartures.Buses.push(departure)
+                    break;
+                case "TRAM":
+                    returnDepartures.Trams.push(departure)
+                    break;
+                case "TRAIN":
+                    returnDepartures.Trains.push(departure)
+                    break;
+                case "METRO":
+                    returnDepartures.Metros.push(departure)
+                    break;
+                case "SHIP":
+                    returnDepartures.Ships.push(departure)
+                    break;
+                default:
+                    break;
+            }
+      })
+    } catch (error) {
+      console.error(error)
+    }
+
+    return returnDepartures
   }
 
 

@@ -9,9 +9,10 @@ import { ActivatedRoute } from '@angular/router';
 import { SavedDeparture } from "../saved-departure";
 
 @Component({
-  selector: 'app-travel',
-  templateUrl: './travel.component.html',
-  styleUrls: ['./travel.component.css']
+    selector: 'app-travel',
+    templateUrl: './travel.component.html',
+    styleUrls: ['./travel.component.css'],
+    standalone: false
 })
 export class TravelComponent implements OnInit{
 
